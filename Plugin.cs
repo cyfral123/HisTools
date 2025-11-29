@@ -120,7 +120,6 @@ public class Plugin : BaseUnityPlugin
         if (zipFiles.Length > 0)
         {
             Utils.Logger.Info($"Extracting builtin zips from '{sourceDir}' to '{targetDir}'...");
-            return;
         }
 
         foreach (var zip in zipFiles)
