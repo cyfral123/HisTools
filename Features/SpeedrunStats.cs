@@ -29,9 +29,9 @@ public class SpeedrunStats : FeatureBase
     public SpeedrunStats() : base("SpeedrunStats", "Various info about level completion speed")
     {
         EventBus.Subscribe<GameStartEvent>(OnGameStart);
+        EventBus.Subscribe<EnterLevelEvent>(OnEnterLevel);
         EventBus.Subscribe<LevelChangedEvent>(OnLevelChanged);
     }
-
 
     private void EnsurePlayer()
     {
@@ -69,13 +69,11 @@ public class SpeedrunStats : FeatureBase
     public override void OnEnable()
     {
         EventBus.Subscribe<WorldUpdateEvent>(OnWorldUpdate);
-        EventBus.Subscribe<EnterLevelEvent>(OnEnterLevel);
     }
 
     public override void OnDisable()
     {
         EventBus.Unsubscribe<WorldUpdateEvent>(OnWorldUpdate);
-        EventBus.Unsubscribe<EnterLevelEvent>(OnEnterLevel);
 
         if (_statsCanvas != null)
             GameObject.Destroy(_statsCanvas.gameObject);
@@ -196,6 +194,7 @@ public class SpeedrunStats : FeatureBase
 
     private void OnLevelChanged(LevelChangedEvent e)
     {
+        Utils.Logger.Debug("SpeedrunStats: Level changed");
         if (CommandConsole.hasCheated)
         {
             Utils.Logger.Debug("SpeedrunStats: Level changed while cheating, ignoring");
@@ -213,6 +212,7 @@ public class SpeedrunStats : FeatureBase
 
     private void OnGameStart(GameStartEvent e)
     {
+        Utils.Logger.Debug("SpeedrunStats: Game start");
         StartHistory(savePrevious: true);
     }
 
