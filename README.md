@@ -1,7 +1,5 @@
 # How to use
-The default key to open the features menu is `Right Shift`. You can change it in the config, look for it in your mod manager.
-
-You can also change the color palette there.
+The default key to open the features menu is `Right Shift`. You can change it in the config, look for it in your mod manager. (You can also change the color palette there)
 
 Everything is configured optimally by default, but you can adjust a features settings by clicking the `wrench icon` next to its toggle button.
 
