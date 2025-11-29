@@ -59,7 +59,7 @@ public class Plugin : BaseUnityPlugin
         var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll();
 
-        var pluginDir = Directory.CreateDirectory(ConfigDir);
+        Directory.CreateDirectory(ConfigDir);
         Directory.CreateDirectory(RoutesConfigPath);
         Directory.CreateDirectory(SettingsConfigPath);
         Directory.CreateDirectory(SpeedrunStatsDir);
@@ -81,10 +81,7 @@ public class Plugin : BaseUnityPlugin
         InitFeature(pathCPos, "Path", new RouteRecorder());
         InitFeature(miscCPos, "Misc", new FreeBuying());
         InitFeature(miscCPos, "Misc", new SpeedrunStats());
-
-        var buttonFactory = new UIButtonFactory();
-        buttonFactory.CreateAllButtons(FeatureRegistry.GetAll());
-
+        
         var featureSettingsConfig = new Config.Settings();
         RecoverState.FeaturesState(FeaturesStateConfigFilePath);
 
