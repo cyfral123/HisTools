@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -100,7 +101,7 @@ public class Plugin : BaseUnityPlugin
 
     private void ExtractBuiltinStuff()
     {
-        var builtinsDir = Path.Combine(Paths.PluginPath, Name);
+        var builtinsDir = Path.GetDirectoryName(Info.Location);
         ExtractBuiltinZips(builtinsDir, ConfigDir);
     }
 
@@ -128,7 +129,16 @@ public class Plugin : BaseUnityPlugin
             var folderName = Path.GetFileNameWithoutExtension(zip);
             var destPath = Path.Combine(targetDir, folderName);
 
-            ZipFile.ExtractToDirectory(zip, destPath);
+
+            try
+            {
+                ZipFile.ExtractToDirectory(zip, destPath);
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.Error($"Failed to extract '{zip}': {ex.Message}");
+                continue;
+            }
 
             if (File.Exists(zip))
                 File.Delete(zip);
