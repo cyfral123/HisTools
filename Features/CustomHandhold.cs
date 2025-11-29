@@ -5,6 +5,7 @@ public class CustomHandhold : FeatureBase
     private readonly BoolSetting _handholdShimmerColorEnabledSetting;
     private readonly ColorSetting _handholdShimmerColor;
 
+    // Patches/FXManagerPatch.cs
     public CustomHandhold() : base("CustomHandhold", "Edit handlond effects and colors")
     {
         _handholdShimmerColorEnabledSetting = AddSetting(new BoolSetting(this, "Custom shimmer color", "...", true));
