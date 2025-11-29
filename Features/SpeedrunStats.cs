@@ -79,73 +79,79 @@ public class SpeedrunStats : FeatureBase
             GameObject.Destroy(_statsCanvas.gameObject);
     }
 
-    // TODO: Shit checks, need to be refactored
+
+    private static string Format(TimeSpan t) => t.ToString("mm\\:ss\\:ff");
+
+    private bool ShouldUpdate()
+    {
+        if (CL_EventManager.currentLevel == null)
+            return false;
+        if (currentLevel == null && lastLevel == null)
+            return false;
+        if (currentTimeSpan == TimeSpan.Zero && lastTimeSpan == TimeSpan.Zero)
+            return false;
+        return true;
+    }
+
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
-        var level = CL_EventManager.currentLevel;
-        if (level == null || (currentLevel == null && lastLevel == null))
+        if (!ShouldUpdate())
             return;
-        if (currentTimeSpan == TimeSpan.Zero && lastTimeSpan == TimeSpan.Zero)
-            return;
+
         EnsureUI();
         _statsCanvas.gameObject.SetActive(true);
 
         var bg = Palette.HtmlTransparent(Plugin.BackgroundHtml.Value, 0.5f);
-
         var elapsedTime = currentTimeSpan - lastTimeSpan;
         var name = Text.CompactLevelName(lastLevel.levelName);
 
-        string attentionColor = Plugin.RouteLabelEnabledColorHtml.Value;
-        string defaultColor = Plugin.EnabledHtml.Value;
-        string mutedColor = "#808080";
-        string cheatedColor = "#ffffff";
+        var (nowColor, avgColor, bestColor) = GetColors(elapsedTime);
 
-        string nowColor;
-        string avgColor;
-        string bestColor;
+        _statsText.text =
+            $"<color=grey>{name}: " +
+            $"Start: {Format(lastTimeSpan)} " +
+            $"End: {Format(currentTimeSpan)}\n" +
+            $"Now: <mark={bg}><b><color={nowColor}>{Format(elapsedTime)}</color></b></mark> " +
+            $"Avg: <mark={bg}><b><color={avgColor}>{Format(avgTime)}</color></b></mark> " +
+            $"Best: <mark={bg}><b><color={bestColor}>{Format(bestTime)}</color></b></mark>" +
+            $"</color>";
+    }
 
-        avgColor = mutedColor;
-        bestColor = mutedColor;
+    private (string now, string avg, string best) GetColors(TimeSpan elapsedTime)
+    {
+        string attention = Plugin.RouteLabelEnabledColorHtml.Value;
+        string normal = Plugin.EnabledHtml.Value;
+        const string muted = "#808080";
+        const string cheated = "#ffffff";
+
+        if (CommandConsole.hasCheated)
+            return (cheated, cheated, cheated);
+
+        string nowColor = muted;
+        string avgColor = muted;
+        string bestColor = muted;
 
         if (elapsedTime < bestTime)
         {
-            nowColor = attentionColor;
-            bestColor = defaultColor;
+            nowColor = attention;
+            bestColor = normal;
         }
         else if (elapsedTime < avgTime)
         {
-            nowColor = defaultColor;
-        }
-        else
-        {
-            nowColor = mutedColor;
+            nowColor = normal;
         }
 
         if (avgTime.TotalSeconds > 0)
         {
-            var delta = elapsedTime.TotalSeconds / avgTime.TotalSeconds;
+            double delta = elapsedTime.TotalSeconds / avgTime.TotalSeconds;
             if (Utils.Time.AlmostEqual(elapsedTime, avgTime, TimeSpan.FromSeconds(delta)))
-                nowColor = defaultColor;
+                nowColor = normal;
         }
 
         if (bestTime == TimeSpan.Zero || avgTime == TimeSpan.Zero)
-            nowColor = attentionColor;
+            nowColor = attention;
 
-        if (CommandConsole.hasCheated)
-        {
-            nowColor = cheatedColor;
-            avgColor = cheatedColor;
-            bestColor = cheatedColor;
-        }
-
-        _statsText.text =
-            $"<color=grey>{name}: " +
-            $"Start: {lastTimeSpan:mm\\:ss\\:ff} " +
-            $"End: {currentTimeSpan:mm\\:ss\\:ff}\n" +
-            $"Now: <mark={bg}><b><color={nowColor}>{elapsedTime:mm\\:ss\\:ff}</color></b></mark> " +
-            $"Avg: <mark={bg}><b><color={avgColor}>{avgTime:mm\\:ss\\:ff}</color></b></mark> " +
-            $"Best: <mark={bg}><b><color={bestColor}>{bestTime:mm\\:ss\\:ff}</color></b></mark> " +
-            $"</color>";
+        return (nowColor, avgColor, bestColor);
     }
 
     private void OnEnterLevel(EnterLevelEvent e)
