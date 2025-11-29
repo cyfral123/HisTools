@@ -4,7 +4,6 @@ using UnityEngine;
 [RequireComponent(typeof(CanvasGroup))]
 public class MenuAnimator : MonoBehaviour
 {
-    [Header("Animation Settings")]
     public float duration = 0.2f;
     public float maxAlpha = 0.95f;
     public Vector3 startScale = new(0.8f, 0.8f, 0.8f);
@@ -14,12 +13,12 @@ public class MenuAnimator : MonoBehaviour
 
     private void Awake()
     {
-        if (canvasGroup == null)
+        if (!canvasGroup)
         {
             canvasGroup = GetComponent<CanvasGroup>();
         }
 
-        if (canvasGroup == null)
+        if (!canvasGroup)
         {
             Utils.Logger.Error("MenuAnimator is missing a canvasGroup ref");
             enabled = false;
@@ -44,25 +43,25 @@ public class MenuAnimator : MonoBehaviour
 
     public void Toggle(bool show)
     {
-        if (this == null || transform == null)
+        if (!this || !transform)
         {
             Utils.Logger.Error("MenuAnimator.Toggle called on a destroyed component");
             return;
         }
 
-        if (canvasGroup == null)
+        if (!canvasGroup)
         {
-            if (UI.FeaturesMenu.CanvasGroup != null)
+            if (UI.FeaturesMenu.CanvasGroup)
             {
                 canvasGroup = UI.FeaturesMenu.CanvasGroup;
             }
 
-            if (canvasGroup == null)
+            if (!canvasGroup)
             {
                 canvasGroup = GetComponent<CanvasGroup>();
             }
 
-            if (canvasGroup == null)
+            if (!canvasGroup)
             {
                 Utils.Logger.Error("MenuAnimator.Toggle called but canvasGroup is null");
                 return;
@@ -79,13 +78,13 @@ public class MenuAnimator : MonoBehaviour
             canvasGroup.blocksRaycasts = true;
         }
 
-        bool shouldAnimate = show && categoryAnim != null && categoryAnim.enabled;
+        var shouldAnimate = show && categoryAnim && categoryAnim.enabled;
 
         if (shouldAnimate)
         {
-            Sequence seq = DOTween.Sequence();
-            seq.Join(canvasGroup.DOFade(show ? maxAlpha : 0f, duration));
-            seq.Join(canvasGroup.transform.DOScale(show ? Vector3.one : startScale, duration));
+            var seq = DOTween.Sequence();
+            seq.Join(canvasGroup.DOFade(maxAlpha, duration));
+            seq.Join(canvasGroup.transform.DOScale(Vector3.one, duration));
 
             categoryAnim.Refresh();
             categoryAnim.PlayShowAnimation();
@@ -96,15 +95,10 @@ public class MenuAnimator : MonoBehaviour
             canvasGroup.transform.localScale = show ? Vector3.one : startScale;
         }
 
-        if (!show)
-        {
-            canvasGroup.interactable = false;
-            canvasGroup.blocksRaycasts = false;
+        if (show) return;
+        canvasGroup.interactable = false;
+        canvasGroup.blocksRaycasts = false;
 
-            DOVirtual.DelayedCall(duration, () =>
-            {
-                if (!show) gameObject.SetActive(false);
-            });
-        }
+        DOVirtual.DelayedCall(duration, () => { gameObject.SetActive(false); });
     }
 }
