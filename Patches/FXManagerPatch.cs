@@ -10,7 +10,7 @@ using static FXManager;
 
 public static class FXManagerPatch
 {
-    // FXManager.UpdateHandholdMaterialSettings have only one call to Color.Lerp
+    // FXManager.UpdateHandholdMaterialSettings have only one call to Color.Lerp, replacing it to MyPatch.CustomLerp
     [HarmonyPatch(typeof(FXManager), "UpdateHandholdMaterialSettings")]
     public static class Patch_HandholdMaterial
     {
@@ -34,6 +34,7 @@ public static class FXManagerPatch
         }
     }
 
+    // Patch for fog feature
     [HarmonyPatch(typeof(FXManager), "FXRender")]
     public static class Patch_FXRender
     {
@@ -68,7 +69,7 @@ public static class FXManagerPatch
         }
     }
 
-
+    // Patch for custom handhold colors
     public static class MyPatch
     {
         public static Color CustomLerp(Color a, Color b, float t)
