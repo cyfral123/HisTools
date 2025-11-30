@@ -1,15 +1,17 @@
-
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
 using HarmonyLib;
+using HisTools.Features;
+using HisTools.Features.Controllers;
 using UnityEngine;
-using static FXManager;
+
+namespace HisTools.Patches;
 
 public static class FXManagerPatch
 {
+    private static readonly int Fog = Shader.PropertyToID("_FOG");
+
     // FXManager.UpdateHandholdMaterialSettings have only one call to Color.Lerp, replacing it to MyPatch.CustomLerp
     [HarmonyPatch(typeof(FXManager), "UpdateHandholdMaterialSettings")]
     public static class Patch_HandholdMaterial
@@ -22,7 +24,7 @@ public static class FXManagerPatch
 
             var customLerpMethod = AccessTools.Method(typeof(MyPatch), nameof(MyPatch.CustomLerp));
 
-            for (int i = 0; i < codes.Count; i++)
+            for (var i = 0; i < codes.Count; i++)
             {
                 if (codes[i].Calls(lerpMethod))
                 {
@@ -58,19 +60,12 @@ public static class FXManagerPatch
                 value = new Vector4(customFogColor.r, customFogColor.g, customFogColor.b, customFogAlpha);
             }
 
-            if (fogVisible)
-            {
-                Shader.SetGlobalVector("_FOG", value);
-            }
-            else
-            {
-                Shader.SetGlobalVector("_FOG", Vector4.zero);
-            }
+            Shader.SetGlobalVector(Fog, fogVisible ? value : Vector4.zero);
         }
     }
 
     // Patch for custom handhold colors
-    public static class MyPatch
+    private static class MyPatch
     {
         public static Color CustomLerp(Color a, Color b, float t)
         {

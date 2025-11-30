@@ -1,5 +1,7 @@
 using System.Collections.Generic;
-using UI;
+using HisTools.Features.Controllers;
+
+namespace HisTools.UI.Controllers;
 
 public interface IUIButtonFactory
 {

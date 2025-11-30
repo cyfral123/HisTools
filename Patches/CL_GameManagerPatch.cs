@@ -1,5 +1,7 @@
 using HarmonyLib;
 
+namespace HisTools.Patches;
+
 public static class CL_GameManagerPatch
 {
     [HarmonyPatch(typeof(CL_GameManager), "Start")]

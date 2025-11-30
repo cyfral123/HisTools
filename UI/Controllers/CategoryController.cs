@@ -1,10 +1,9 @@
-using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using DG.Tweening;
 
-namespace UI.Controllers
+namespace HisTools.UI.Controllers
 {
     public class CategoryController : MonoBehaviour, IPointerDownHandler, IDragHandler
     {

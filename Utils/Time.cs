@@ -1,6 +1,6 @@
 using System;
 
-namespace Utils;
+namespace HisTools.Utils;
 
 public static class Time
 {

@@ -1,20 +1,21 @@
 using UnityEngine;
 
+namespace HisTools.Utils;
+
 public class CoroutineRunner : MonoBehaviour
 {
-    private static CoroutineRunner _instance;
     public static CoroutineRunner Instance
     {
         get
         {
-            if (_instance == null)
+            if (!field)
             {
                 var go = new GameObject("HisTools_CoroutineRunner");
-                _instance = go.AddComponent<CoroutineRunner>();
+                field = go.AddComponent<CoroutineRunner>();
                 DontDestroyOnLoad(go);
             }
-            Utils.Logger.Debug("CoroutineRunner called");
-            return _instance;
+            Logger.Debug("CoroutineRunner called");
+            return field;
         }
     }
 }

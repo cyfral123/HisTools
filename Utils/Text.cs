@@ -1,4 +1,4 @@
-namespace Utils;
+namespace HisTools.Utils;
 
 public class Text
 {

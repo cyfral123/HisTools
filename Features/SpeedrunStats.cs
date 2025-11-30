@@ -1,13 +1,16 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using HisTools.Features.Controllers;
+using HisTools.UI;
+using HisTools.Utils;
+using HisTools.Utils.SpeedrunFeature;
 using Newtonsoft.Json.Linq;
 using TMPro;
-using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using Utils;
+using Object = UnityEngine.Object;
+
+namespace HisTools.Features;
 
 public class SpeedrunStats : FeatureBase
 {
@@ -16,15 +19,15 @@ public class SpeedrunStats : FeatureBase
 
     private Transform _playerTransform;
 
-    private M_Level lastLevel;
-    private M_Level currentLevel;
-    private TimeSpan lastTimeSpan = TimeSpan.Zero;
-    private TimeSpan currentTimeSpan = TimeSpan.Zero;
+    private M_Level _lastLevel;
+    private M_Level _currentLevel;
+    private TimeSpan _lastTimeSpan = TimeSpan.Zero;
+    private TimeSpan _currentTimeSpan = TimeSpan.Zero;
 
-    private TimeSpan bestTime = TimeSpan.Zero;
-    private TimeSpan avgTime = TimeSpan.Zero;
+    private TimeSpan _bestTime = TimeSpan.Zero;
+    private TimeSpan _avgTime = TimeSpan.Zero;
 
-    private JArray history = [];
+    private readonly JArray _history = [];
 
     public SpeedrunStats() : base("SpeedrunStats", "Various info about level completion speed")
     {
@@ -35,16 +38,15 @@ public class SpeedrunStats : FeatureBase
 
     private void EnsurePlayer()
     {
-        if (_playerTransform == null)
-        {
-            var playerObj = GameObject.Find("CL_Player");
-            if (playerObj == null)
-            {
-                Utils.Logger.Error("RoutePlayer: Player object not found");
-            }
+        if (_playerTransform != null) return;
 
-            _playerTransform = playerObj.transform;
+        var playerObj = GameObject.Find("CL_Player");
+        if (playerObj == null)
+        {
+            Utils.Logger.Error("RoutePlayer: Player object not found");
         }
+
+        _playerTransform = playerObj.transform;
     }
 
     private void EnsureUI()
@@ -76,20 +78,21 @@ public class SpeedrunStats : FeatureBase
         EventBus.Unsubscribe<WorldUpdateEvent>(OnWorldUpdate);
 
         if (_statsCanvas != null)
-            GameObject.Destroy(_statsCanvas.gameObject);
+            Object.Destroy(_statsCanvas.gameObject);
     }
 
 
-    private static string Format(TimeSpan t) => t.ToString("mm\\:ss\\:ff");
+    private static string Format(TimeSpan t) => t.ToString(@"mm\:ss\:ff");
 
     private bool ShouldUpdate()
     {
-        if (CL_EventManager.currentLevel == null)
+        if (!CL_EventManager.currentLevel)
             return false;
-        if (currentLevel == null && lastLevel == null)
+        if (!_currentLevel && !_lastLevel)
             return false;
-        if (currentTimeSpan == TimeSpan.Zero && lastTimeSpan == TimeSpan.Zero)
+        if (_currentTimeSpan == TimeSpan.Zero && _lastTimeSpan == TimeSpan.Zero)
             return false;
+
         return true;
     }
 
@@ -102,53 +105,53 @@ public class SpeedrunStats : FeatureBase
         _statsCanvas.gameObject.SetActive(true);
 
         var bg = Palette.HtmlTransparent(Plugin.BackgroundHtml.Value, 0.5f);
-        var elapsedTime = currentTimeSpan - lastTimeSpan;
-        var name = Text.CompactLevelName(lastLevel.levelName);
+        var elapsedTime = _currentTimeSpan - _lastTimeSpan;
+        var name = Text.CompactLevelName(_lastLevel.levelName);
 
         var (nowColor, avgColor, bestColor) = GetColors(elapsedTime);
 
         _statsText.text =
             $"<color=grey>{name}: " +
-            $"Start: {Format(lastTimeSpan)} " +
-            $"End: {Format(currentTimeSpan)}\n" +
+            $"Start: {Format(_lastTimeSpan)} " +
+            $"End: {Format(_currentTimeSpan)}\n" +
             $"Now: <mark={bg}><b><color={nowColor}>{Format(elapsedTime)}</color></b></mark> " +
-            $"Avg: <mark={bg}><b><color={avgColor}>{Format(avgTime)}</color></b></mark> " +
-            $"Best: <mark={bg}><b><color={bestColor}>{Format(bestTime)}</color></b></mark>" +
+            $"Avg: <mark={bg}><b><color={avgColor}>{Format(_avgTime)}</color></b></mark> " +
+            $"Best: <mark={bg}><b><color={bestColor}>{Format(_bestTime)}</color></b></mark>" +
             $"</color>";
     }
 
     private (string now, string avg, string best) GetColors(TimeSpan elapsedTime)
     {
-        string attention = Plugin.RouteLabelEnabledColorHtml.Value;
-        string normal = Plugin.EnabledHtml.Value;
+        var attention = Plugin.RouteLabelEnabledColorHtml.Value;
+        var normal = Plugin.EnabledHtml.Value;
         const string muted = "#808080";
         const string cheated = "#ffffff";
 
         if (CommandConsole.hasCheated)
             return (cheated, cheated, cheated);
 
-        string nowColor = muted;
-        string avgColor = muted;
-        string bestColor = muted;
+        var nowColor = muted;
+        var avgColor = muted;
+        var bestColor = muted;
 
-        if (elapsedTime < bestTime)
+        if (elapsedTime < _bestTime)
         {
             nowColor = attention;
             bestColor = normal;
         }
-        else if (elapsedTime < avgTime)
+        else if (elapsedTime < _avgTime)
         {
             nowColor = normal;
         }
 
-        if (avgTime.TotalSeconds > 0)
+        if (_avgTime.TotalSeconds > 0)
         {
-            double delta = elapsedTime.TotalSeconds / avgTime.TotalSeconds;
-            if (Utils.Time.AlmostEqual(elapsedTime, avgTime, TimeSpan.FromSeconds(delta)))
+            var delta = elapsedTime.TotalSeconds / _avgTime.TotalSeconds;
+            if (Utils.Time.AlmostEqual(elapsedTime, _avgTime, TimeSpan.FromSeconds(delta)))
                 nowColor = normal;
         }
 
-        if (bestTime == TimeSpan.Zero || avgTime == TimeSpan.Zero)
+        if (_bestTime == TimeSpan.Zero || _avgTime == TimeSpan.Zero)
             nowColor = attention;
 
         return (nowColor, avgColor, bestColor);
@@ -159,40 +162,40 @@ public class SpeedrunStats : FeatureBase
         var timeNow = TimeSpan.FromSeconds(CL_GameManager.gMan.GetGameTime());
         var newLevel = e.Level;
 
-        if (currentLevel == null)
+        if (_currentLevel == null)
         {
-            currentLevel = newLevel;
-            lastLevel = newLevel;
+            _currentLevel = newLevel;
+            _lastLevel = newLevel;
 
-            currentTimeSpan = timeNow;
-            lastTimeSpan = timeNow;
+            _currentTimeSpan = timeNow;
+            _lastTimeSpan = timeNow;
 
             return;
         }
 
-        if (newLevel == currentLevel)
+        if (newLevel == _currentLevel)
         {
-            currentTimeSpan = timeNow;
+            _currentTimeSpan = timeNow;
             return;
         }
 
-        lastLevel = currentLevel;
-        lastTimeSpan = currentTimeSpan;
+        _lastLevel = _currentLevel;
+        _lastTimeSpan = _currentTimeSpan;
 
-        currentLevel = newLevel;
-        currentTimeSpan = timeNow;
+        _currentLevel = newLevel;
+        _currentTimeSpan = timeNow;
 
-        EventBus.Publish(new LevelChangedEvent(lastLevel, currentLevel, lastTimeSpan, currentTimeSpan));
+        EventBus.Publish(new LevelChangedEvent(_lastLevel, _currentLevel, _lastTimeSpan, _currentTimeSpan));
 
         CoroutineRunner.Instance.StartCoroutine(
             RunsHistory.LoadSegmentsAndCompute(
                 Plugin.SpeedrunStatsDir,
-                lastLevel.levelName,
+                _lastLevel.levelName,
                 (best, avg) =>
                 {
-                    Utils.Logger.Debug($"Level {lastLevel.levelName}: Best={best}, Avg={avg}");
-                    bestTime = best;
-                    avgTime = avg;
+                    Utils.Logger.Debug($"Level {_lastLevel.levelName}: Best={best}, Avg={avg}");
+                    _bestTime = best;
+                    _avgTime = avg;
                 }
             )
         );
@@ -207,13 +210,15 @@ public class SpeedrunStats : FeatureBase
             return;
         }
 
-        var block = new JObject();
-        block["from"] = e.LastLevel.levelName;
-        block["to"] = e.CurrentLevel.levelName;
-        block["start"] = e.LastTimeSpan.ToString("hh\\:mm\\:ss\\:ff");
-        block["end"] = e.CurrentTimeSpan.ToString("hh\\:mm\\:ss\\:ff");
-        block["elapsed"] = (e.CurrentTimeSpan - e.LastTimeSpan).ToString("hh\\:mm\\:ss\\:ff");
-        history.Add(block);
+        var block = new JObject
+        {
+            ["from"] = e.LastLevel.levelName,
+            ["to"] = e.CurrentLevel.levelName,
+            ["start"] = Format(e.LastTimeSpan),
+            ["end"] = Format(e.CurrentTimeSpan),
+            ["elapsed"] = Format((e.CurrentTimeSpan - e.LastTimeSpan))
+        };
+        _history.Add(block);
     }
 
     private void OnGameStart(GameStartEvent e)
@@ -224,32 +229,34 @@ public class SpeedrunStats : FeatureBase
 
     private void StartHistory(bool savePrevious)
     {
-        if (history.Count > 3 && savePrevious)
+        if (_history.Count > 3 && savePrevious)
         {
             SaveHistory();
         }
 
-        history.RemoveAll();
+        _history.RemoveAll();
 
         if (WorldLoader.instance == null)
             return;
 
-        var runInfo = new JObject();
-        runInfo["runStart"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        runInfo["runSeed"] = WorldLoader.instance.seed;
-        history.Add(runInfo);
+        var runInfo = new JObject
+        {
+            ["runStart"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+            ["runSeed"] = WorldLoader.instance.seed
+        };
+        _history.Add(runInfo);
     }
 
     private void SaveHistory(int maxFiles = 500)
     {
-        var baseFileName = "unnamed_run";
+        const string baseFileName = "unnamed_run";
         var folderPath = Plugin.SpeedrunStatsDir;
 
         var files = Directory.GetFiles(folderPath, $"{baseFileName}*.json")
             .Select(Path.GetFileNameWithoutExtension)
             .ToList();
 
-        int maxCounter = 0;
+        var maxCounter = 0;
         foreach (var file in files)
         {
             if (file == baseFileName)
@@ -259,21 +266,17 @@ public class SpeedrunStats : FeatureBase
             else if (file.StartsWith(baseFileName + "_"))
             {
                 var suffix = file.Substring(baseFileName.Length + 1);
-                if (int.TryParse(suffix, out int n))
+                if (int.TryParse(suffix, out var n))
                 {
                     maxCounter = Math.Max(maxCounter, n);
                 }
             }
         }
 
-        string filePath;
-        if (maxCounter == 0)
-            filePath = Path.Combine(folderPath, $"{baseFileName}.json");
-        else
-            filePath = Path.Combine(folderPath, $"{baseFileName}_{(maxCounter + 1):D2}.json");
+        var filePath = Path.Combine(folderPath, maxCounter == 0 ? $"{baseFileName}.json" : $"{baseFileName}_{(maxCounter + 1):D2}.json");
 
         Utils.Logger.Debug($"SpeedrunStats: saving history to {filePath}");
-        Files.SaveJsonToFile(filePath, history);
+        Files.SaveJsonToFile(filePath, _history);
 
         var allFiles = Directory.GetFiles(folderPath, $"{baseFileName}*.json")
             .OrderBy(File.GetCreationTime)

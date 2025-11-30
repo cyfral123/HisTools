@@ -1,12 +1,18 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using UI;
+using HisTools.Config;
+using HisTools.Features;
+using HisTools.Features.Controllers;
+using HisTools.UI;
+using HisTools.UI.Controllers;
+using HisTools.Utils;
 using UnityEngine;
+
+namespace HisTools;
 
 [BepInPlugin("com.cyfral.HisTools", "HisTools", "0.1.0")]
 public class Plugin : BaseUnityPlugin
@@ -21,8 +27,8 @@ public class Plugin : BaseUnityPlugin
 
     private static readonly FeatureFactory s_featureFactory = new();
 
-    public static float AnimationDuration = 0.15f;
-    public static float MaxBackgroundAlpha = 0.90f;
+    public const float AnimationDuration = 0.15f;
+    public const float MaxBackgroundAlpha = 0.90f;
 
     public static ConfigEntry<string> BackgroundHtml;
     public static ConfigEntry<string> AccentHtml;
@@ -42,19 +48,22 @@ public class Plugin : BaseUnityPlugin
         AccentHtml = Config.Bind("Palette", "Accent", "#6869c3", "Main color");
         EnabledHtml = Config.Bind("Palette", "Enabled", "#9e97d3", "Color for activated elements");
 
-        RouteLabelDisabledColorHtml = Config.Bind("Palette", "RouteLabelDisabledColor", "#320e0e", "Color for enabled route label text");
+        RouteLabelDisabledColorHtml = Config.Bind("Palette", "RouteLabelDisabledColor", "#320e0e",
+            "Color for enabled route label text");
         RouteLabelDisabledOpacityHtml = Config.Bind("Palette", "RouteLabelDisabledOpacity", 50,
             new ConfigDescription("Color for Enabled route label text",
-            new AcceptableValueRange<int>(0, 100)
-        ));
+                new AcceptableValueRange<int>(0, 100)
+            ));
 
-        RouteLabelEnabledColorHtml = Config.Bind("Palette", "RouteLabelEnabledColor", "#bbff28", "Color for disabled route label text");
+        RouteLabelEnabledColorHtml = Config.Bind("Palette", "RouteLabelEnabledColor", "#bbff28",
+            "Color for disabled route label text");
         RouteLabelEnabledOpacityHtml = Config.Bind("Palette", "RouteLabelEnabledOpacity", 100,
             new ConfigDescription("Color for Disabled route label text",
-            new AcceptableValueRange<int>(0, 100)
-        ));
+                new AcceptableValueRange<int>(0, 100)
+            ));
 
-        FeaturesMenuToggleKey = Config.Bind("General", "FeaturesMenuToggleKey", KeyCode.RightShift, "Toggle features menu");
+        FeaturesMenuToggleKey =
+            Config.Bind("General", "FeaturesMenuToggleKey", KeyCode.RightShift, "Toggle features menu");
 
         var harmony = new Harmony(Info.Metadata.GUID);
         harmony.PatchAll();
@@ -81,15 +90,25 @@ public class Plugin : BaseUnityPlugin
         InitFeature(pathCPos, "Path", new RouteRecorder());
         InitFeature(miscCPos, "Misc", new FreeBuying());
         InitFeature(miscCPos, "Misc", new SpeedrunStats());
-        
-        var featureSettingsConfig = new Config.Settings();
+
+
+        EventBus.Subscribe<FeatureSettingChangedEvent>(e =>
+        {
+            Debounce.Run(CoroutineRunner.Instance,
+                e.Setting.Name,
+                2.5f,
+                () => Files.SaveSettingToConfig(e.Feature.Name, e.Setting.Name, e.Setting.GetValue())
+            );
+        });
+
         RecoverState.FeaturesState(FeaturesStateConfigFilePath);
 
         EventBus.Subscribe<GameStartEvent>(_ => FeaturesMenu.EnsureHisToolsMenuInitialized());
-        EventBus.Subscribe<FeatureSettingsMenuToggleEvent>(e => SettingsPanelController.Instance.HandleSettingsToggle(e.Feature));
+        EventBus.Subscribe<FeatureSettingsMenuToggleEvent>(e =>
+            SettingsPanelController.Instance.HandleSettingsToggle(e.Feature));
     }
 
-    private void InitFeature(Vector2 categoryPosition, string categoryName, IFeature feature)
+    private static void InitFeature(Vector2 categoryPosition, string categoryName, IFeature feature)
     {
         s_featureFactory.Register(feature.Name, () => feature);
         s_featureFactory.Create(feature.Name);
@@ -102,7 +121,7 @@ public class Plugin : BaseUnityPlugin
         ExtractBuiltinZips(builtinsDir, ConfigDir);
     }
 
-    public static void ExtractBuiltinZips(string sourceDir, string targetDir)
+    private static void ExtractBuiltinZips(string sourceDir, string targetDir)
     {
         if (!Directory.Exists(sourceDir))
         {

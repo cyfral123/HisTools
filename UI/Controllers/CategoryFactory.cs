@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UI;
+
+namespace HisTools.UI.Controllers;
 
 public class CategoryFactory : ICategoryFactory
 {

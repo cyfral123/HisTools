@@ -1,7 +1,9 @@
 using UnityEngine;
-using System;
 
-public class BoolSetting(IFeature feature, string name, string description, bool defaultValue) : SettingBase<bool>(feature, name, description, defaultValue)
+namespace HisTools.Features.Controllers;
+
+public class BoolSetting(IFeature feature, string name, string description, bool defaultValue)
+    : SettingBase<bool>(feature, name, description, defaultValue)
 {
     public override bool Value
     {
@@ -12,10 +14,17 @@ public class BoolSetting(IFeature feature, string name, string description, bool
             EventBus.Publish(new FeatureSettingChangedEvent(this, Feature));
         }
     }
-
 }
 
-public class FloatSliderSetting(IFeature feature, string name, string description, float defaultValue, float min, float max, float step, int decimals) : SettingBase<float>(feature, name, description, defaultValue)
+public class FloatSliderSetting(
+    IFeature feature,
+    string name,
+    string description,
+    float defaultValue,
+    float min,
+    float max,
+    float step,
+    int decimals) : SettingBase<float>(feature, name, description, defaultValue)
 {
     public float Min { get; } = min;
     public float Max { get; } = max;
@@ -33,9 +42,9 @@ public class FloatSliderSetting(IFeature feature, string name, string descriptio
     }
 }
 
-public class ColorSetting(IFeature feature, string name, string description, Color defaultValue) : SettingBase<Color>(feature, name, description, defaultValue)
+public class ColorSetting(IFeature feature, string name, string description, Color defaultValue)
+    : SettingBase<Color>(feature, name, description, defaultValue)
 {
-    
     public override Color Value
     {
         get => base.Value;

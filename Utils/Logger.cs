@@ -1,6 +1,6 @@
 using BepInEx.Logging;
 
-namespace Utils;
+namespace HisTools.Utils;
 
 public static class Logger
 {

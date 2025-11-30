@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 
+namespace HisTools.Features.Controllers;
+
 public interface IFeature
 {
     ICategory Category { get; set; }

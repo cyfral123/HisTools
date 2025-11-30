@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Utils
+namespace HisTools.Utils
 {
     public static class Palette
     {

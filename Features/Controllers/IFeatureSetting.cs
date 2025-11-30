@@ -1,3 +1,5 @@
+namespace HisTools.Features.Controllers;
+
 public interface IFeatureSetting
 {
     string Name { get; }
@@ -12,4 +14,3 @@ public interface IFeatureSetting<T> : IFeatureSetting
     T Value { get; set; }
     T DefaultValue { get; }
 }
-

@@ -1,6 +1,8 @@
 using DG.Tweening;
 using UnityEngine;
 
+namespace HisTools.Utils.RouteFeature;
+
 public class MarkerActivator : MonoBehaviour
 {
     public float bounceDuration = 0.25f;

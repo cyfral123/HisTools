@@ -1,4 +1,7 @@
+using HisTools.Features.Controllers;
 using UnityEngine;
+
+namespace HisTools.Features;
 
 public class CustomHandhold : FeatureBase
 {
