@@ -424,7 +424,7 @@ public class RoutePlayer : FeatureBase
 
         foreach (var route in ActiveRoutes.Values)
         {
-            if (route.Line == null)
+            if (!route.Line)
                 continue;
 
             var count = route.Line.positionCount;
@@ -463,9 +463,8 @@ public class RoutePlayer : FeatureBase
             var alpha = Mathf.Lerp(fadedAlpha, defaultAlpha, minDist / fadeDistance);
             alpha = Mathf.Clamp(alpha, fadedAlpha, defaultAlpha);
 
-            var baseLookAhead = progressThreshold;
             var lookAheadFactor = Mathf.Clamp01(count / 100f);
-            var adaptiveLookAhead = Mathf.Lerp(baseLookAhead * 0.3f, baseLookAhead, lookAheadFactor);
+            var adaptiveLookAhead = Mathf.Lerp(progressThreshold * 0.3f, progressThreshold, lookAheadFactor);
 
             var lookIndex = Mathf.Min(
                 closest + Mathf.RoundToInt(adaptiveLookAhead),
@@ -521,12 +520,12 @@ public class RoutePlayer : FeatureBase
             // markers
             foreach (var marker in route.JumpMarkers)
             {
-                if (marker == null) continue;
+                if (!marker) continue;
 
                 var distSq = (marker.transform.position - playerPos).sqrMagnitude;
 
                 var renderer = marker.GetComponent<Renderer>();
-                if (renderer == null) continue;
+                if (!renderer) continue;
 
                 var completed = _activatedMarkers.Contains(marker);
 

@@ -53,7 +53,7 @@ public class RouteRecorder : FeatureBase
     public override void OnEnable()
     {
         var playerObj = GameObject.Find("CL_Player");
-        if (playerObj == null)
+        if (!playerObj)
         {
             Utils.Logger.Error("RecordPath: Player object not found");
             return;

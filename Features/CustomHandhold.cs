@@ -14,7 +14,8 @@ public class CustomHandhold : FeatureBase
 
     public override void OnEnable() => FXManager.UpdateHandholdMaterialSettings();
     public override void OnDisable() => FXManager.UpdateHandholdMaterialSettings();
-    public override void OnSettingChanged(string _, IFeatureSetting __)
+
+    protected override void OnSettingChanged(string _, IFeatureSetting __)
     {
         FXManager.UpdateHandholdMaterialSettings();
     }

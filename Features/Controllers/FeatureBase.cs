@@ -12,7 +12,7 @@ public abstract class FeatureBase : IFeature
     public string Description { get; }
     public bool Enabled { get; set; }
 
-    protected readonly List<IFeatureSetting> _settings = [];
+    private readonly List<IFeatureSetting> _settings = [];
     public IReadOnlyList<IFeatureSetting> Settings => _settings;
 
     protected FeatureBase(string name, string description)
@@ -37,9 +37,17 @@ public abstract class FeatureBase : IFeature
         });
     }
 
-    public virtual void OnEnable() { }
-    public virtual void OnDisable() { }
-    public virtual void OnSettingChanged(string featureName, IFeatureSetting setting) { }
+    public virtual void OnEnable()
+    {
+    }
+
+    public virtual void OnDisable()
+    {
+    }
+
+    protected virtual void OnSettingChanged(string _, IFeatureSetting __)
+    {
+    }
 
 
     private void Enable()
@@ -63,14 +71,11 @@ public abstract class FeatureBase : IFeature
 
     public T GetSetting<T>(string name) where T : class, IFeatureSetting
     {
-        var result = _settings.FirstOrDefault(s => s.Name.ToLower() == name.ToLower());
-        if (result == null)
-        {
-            Utils.Logger.Warn($"Feature {Name} does not have setting {name}");
-            return null;
-        }
+        var result = _settings.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.CurrentCultureIgnoreCase));
+        if (result != null) return result as T;
+        Utils.Logger.Warn($"Feature {Name} does not have setting {name}");
+        return null;
 
-        return result as T;
     }
 
     protected T AddSetting<T>(T setting) where T : IFeatureSetting
@@ -83,7 +88,7 @@ public abstract class FeatureBase : IFeature
                 setting.GetValue()
             );
 
-            object finalValue = ConvertToSettingType(loadedObj, setting.GetValue().GetType());
+            var finalValue = ConvertToSettingType(loadedObj, setting.GetValue().GetType());
 
             setting.SetValue(finalValue);
         }
@@ -96,37 +101,43 @@ public abstract class FeatureBase : IFeature
         return setting;
     }
 
-    private object ConvertToSettingType(object value, Type targetType)
+    private static object ConvertToSettingType(object value, Type targetType)
     {
         if (value == null) return null;
 
         if (targetType == typeof(float))
         {
-            if (value is double d) return (float)d;
-            if (value is int i) return (float)i;
-            if (value is long l) return (float)l;
-            return Convert.ToSingle(value);
-        }
-        else if (targetType == typeof(int))
-        {
-            if (value is long l) return (int)l;
-            if (value is double d) return (int)d;
-            return Convert.ToInt32(value);
-        }
-        else if (targetType == typeof(Color))
-        {
-            if (value is string html && ColorUtility.TryParseHtmlString(html, out var color))
+            return value switch
             {
-                Utils.Logger.Debug($"Converted '{value}' to Color: {color}");
-                return color;
-            }
-            else if (value is Color rgba)
+                double d => (float)d,
+                int i => i,
+                long l => l,
+                _ => Convert.ToSingle(value)
+            };
+        }
+
+        if (targetType == typeof(int))
+        {
+            return value switch
             {
-                Utils.Logger.Debug($"Converted '{value}' to Color: {rgba}");
-                return rgba;
-            }
-            Utils.Logger.Debug($"Failed to convert '{value}' to Color");
-            return Color.white;
+                long l => l,
+                double d => d,
+                _ => Convert.ToInt32(value)
+            };
+        }
+
+        if (targetType == typeof(Color))
+        {
+            return value switch
+            {
+                string html when ColorUtility.TryParseHtmlString(html, out var color)
+                    => color,
+
+                Color rgba
+                    => rgba,
+
+                _ => Color.white
+            };
         }
 
         return Convert.ChangeType(value, targetType);
