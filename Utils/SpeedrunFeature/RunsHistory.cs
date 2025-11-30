@@ -5,25 +5,17 @@ using System.IO;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
+namespace HisTools.Utils.SpeedrunFeature;
+
 public class RunsHistory
 {
-    public class RunSegment
+    private class RunSegment(string from, string to, TimeSpan elapsed)
     {
-
-        public string From { get; set; }
-        public string To { get; set; }
-        public TimeSpan Elapsed { get; set; }
-
-        public RunSegment(string from, string to, TimeSpan elapsed)
-        {
-            From = from;
-            To = to;
-            Elapsed = elapsed;
-        }
+        public TimeSpan Elapsed { get; } = elapsed;
     }
 
     public static IEnumerator LoadSegmentsAndCompute(string folderPath, string targetLevel,
-    Action<TimeSpan, TimeSpan> onFinished)
+        Action<TimeSpan, TimeSpan> onFinished)
     {
         var levelSegments = new List<RunSegment>();
 
@@ -50,7 +42,7 @@ public class RunsHistory
             }
             catch (Exception ex)
             {
-                Utils.Logger.Error($"Failed to read JSON {file}: {ex}");
+                Logger.Error($"Failed to read JSON {file}: {ex}");
             }
 
             yield return null;

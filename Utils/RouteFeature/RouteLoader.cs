@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Sirenix.Serialization;
-using UnityEngine;
-using HisTools.Routes;
 using Newtonsoft.Json;
+
+namespace HisTools.Utils.RouteFeature;
 
 public static class RouteLoader
 {
@@ -15,16 +14,17 @@ public static class RouteLoader
 
         if (!File.Exists(filePath))
         {
-            Utils.Logger.Warn($"Route file not found: {filePath}");
+            Logger.Warn($"Route file not found: {filePath}");
             return routeSet;
         }
 
-        string jsonText = File.ReadAllText(filePath);
+        var jsonText = File.ReadAllText(filePath);
         if (string.IsNullOrWhiteSpace(jsonText))
         {
-            Utils.Logger.Warn($"JSON-file is empty: {filePath}");
+            Logger.Warn($"JSON-file is empty: {filePath}");
             return routeSet;
         }
+
         List<RouteData> routeDataList;
         try
         {
@@ -38,29 +38,25 @@ public static class RouteLoader
         }
         catch (Exception ex)
         {
-            Utils.Logger.Warn($"Error parsing JSON: {ex.Message}");
+            Logger.Warn($"Error parsing JSON: {ex.Message}");
             return routeSet;
         }
 
 
         if (routeDataList == null || routeDataList.Count == 0)
         {
-            Utils.Logger.Debug($"No routes in file: {filePath}");
+            Logger.Debug($"No routes in file: {filePath}");
             return routeSet;
         }
 
-        bool changed = false;
+        var changed = false;
 
-        foreach (var rd in routeDataList)
+        foreach (var rd in routeDataList
+                     .Where(rd => rd.info != null)
+                     .Where(rd => string.IsNullOrWhiteSpace(rd.info.uid)))
         {
-            if (rd.info == null)
-                continue;
-
-            if (string.IsNullOrWhiteSpace(rd.info.uid))
-            {
-                rd.info.uid = Utils.Files.GenerateUid();
-                changed = true;
-            }
+            rd.info.uid = Files.GenerateUid();
+            changed = true;
         }
 
         if (changed)
@@ -72,10 +68,8 @@ public static class RouteLoader
         var first = routeDataList.First();
         routeSet.info = first.info;
 
-        foreach (var rd in routeDataList)
+        foreach (var rd in routeDataList.Where(rd => rd.points != null))
         {
-            if (rd.points == null) continue;
-
             foreach (var p in rd.points)
             {
                 routeSet.points.Add(p.ToVector3());

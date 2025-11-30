@@ -1,21 +1,24 @@
 using System.Collections;
 using System.Collections.Generic;
+using HisTools.Config;
+using HisTools.Features.Controllers;
+using HisTools.UI.Controllers;
+using HisTools.Utils;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UI;
+namespace HisTools.UI;
 
 public class FeaturesMenu : MonoBehaviour
 {
-    private static bool _isAnimating = false;
+    private static bool _isAnimating;
     private const float AnimationCooldown = 0.25f;
 
-    public static GameObject FeaturesMenuGO { get; private set; }
-    public static GameObject CategoriesContainerGO { get; private set; }
-    public static GameObject SettingsGO { get; private set; }
+    private static GameObject FeaturesMenuGO { get; set; }
+    private static GameObject CategoriesContainerGO { get; set; }
+    private static GameObject SettingsGO { get; set; }
     public static CanvasGroup CanvasGroup { get; private set; }
-    public static MenuAnimator MenuAnimator { get; private set; }
-    public static Canvas TooltipCanvas { get; private set; }
+    private static MenuAnimator MenuAnimator { get; set; }
     public static Canvas Canvas { get; private set; }
     public static bool IsMenuVisible { get; private set; }
 
@@ -60,14 +63,14 @@ public class FeaturesMenu : MonoBehaviour
         image.color = new Color(0f, 0f, 0f, 1f);
         image.raycastTarget = false;
 
-        if (SettingsGO == null)
+        if (!SettingsGO)
         {
             SettingsGO = new GameObject("HisTools_SettingsPanelController");
             SettingsGO.AddComponent<SettingsPanelController>();
             SettingsGO.transform.SetParent(FeaturesMenuGO.transform, false);
         }
 
-        if (CategoriesContainerGO == null)
+        if (!CategoriesContainerGO)
         {
             CategoriesContainerGO = new GameObject("HisTools_CategoriesContainer");
             CategoriesContainerGO.transform.SetParent(FeaturesMenuGO.transform, false);
@@ -78,7 +81,7 @@ public class FeaturesMenu : MonoBehaviour
             rect.offsetMax = new Vector2(0, 0);
         }
 
-        if (CategoriesContainerGO.GetComponent<CanvasGroup>() == null)
+        if (!CategoriesContainerGO.GetComponent<CanvasGroup>())
             CategoriesContainerGO.AddComponent<CanvasGroup>();
 
         var categoriesAnim = CategoriesContainerGO.GetComponent<CategoriesAnimator>() ??
@@ -92,7 +95,7 @@ public class FeaturesMenu : MonoBehaviour
     public static void ShowMenu()
     {
         if (IsMenuVisible) return;
-        if (MenuAnimator == null) return;
+        if (!MenuAnimator) return;
 
         MenuAnimator.Show();
         IsMenuVisible = true;
@@ -103,7 +106,7 @@ public class FeaturesMenu : MonoBehaviour
     public static void HideMenu()
     {
         if (!IsMenuVisible) return;
-        if (MenuAnimator == null) return;
+        if (!MenuAnimator) return;
 
         MenuAnimator.Hide();
         IsMenuVisible = false;
@@ -116,7 +119,7 @@ public class FeaturesMenu : MonoBehaviour
     public static void ToggleMenu()
     {
         EnsureHisToolsMenuInitialized();
-        if (MenuAnimator == null || _isAnimating) return;
+        if (!MenuAnimator || _isAnimating) return;
 
         _isAnimating = true;
 
@@ -125,7 +128,6 @@ public class FeaturesMenu : MonoBehaviour
         else
             ShowMenu();
 
-        EventBus.Publish(new MenuVisibleChangedEvent(IsMenuVisible));
         CoroutineRunner.Instance.StartCoroutine(ResetAnimating());
     }
 
@@ -141,13 +143,13 @@ public class FeaturesMenu : MonoBehaviour
 
         RebuildCategoriesAndButtonsIfNeeded();
 
-        if (MenuAnimator != null && MenuAnimator)
+        if (MenuAnimator && MenuAnimator)
             return;
 
-        if (CanvasGroup == null && FeaturesMenuGO != null)
+        if (!CanvasGroup && FeaturesMenuGO)
         {
             CanvasGroup = FeaturesMenuGO.GetComponent<CanvasGroup>();
-            if (CanvasGroup == null)
+            if (!CanvasGroup)
             {
                 CanvasGroup = FeaturesMenuGO.AddComponent<CanvasGroup>();
                 CanvasGroup.alpha = 0f;
@@ -156,16 +158,16 @@ public class FeaturesMenu : MonoBehaviour
             }
         }
 
-        if (CategoriesContainerGO == null && FeaturesMenuGO != null)
+        if (!CategoriesContainerGO && FeaturesMenuGO)
         {
             CategoriesContainerGO = FeaturesMenuGO.transform.Find("CategoriesContainer")?.gameObject;
         }
 
-        var categoriesAnimator = CategoriesContainerGO != null
+        var categoriesAnimator = CategoriesContainerGO
             ? CategoriesContainerGO.GetComponent<CategoriesAnimator>()
             : null;
 
-        if (CanvasGroup == null)
+        if (!CanvasGroup)
         {
             Utils.Logger.Error("FeaturesMenu.EnsureAnimatorInitialized: CanvasGroup missing");
             return;
@@ -173,7 +175,7 @@ public class FeaturesMenu : MonoBehaviour
 
         MenuAnimator = FeaturesMenuGO.GetComponent<MenuAnimator>();
 
-        if (MenuAnimator == null)
+        if (!MenuAnimator)
         {
             MenuAnimator = FeaturesMenuGO.AddComponent<MenuAnimator>();
         }
@@ -184,7 +186,7 @@ public class FeaturesMenu : MonoBehaviour
 
     private static void RebuildCategoriesAndButtonsIfNeeded()
     {
-        if (CategoriesContainerGO == null) return;
+        if (!CategoriesContainerGO) return;
 
         if (CategoriesContainerGO.transform.childCount > 0) return;
 
@@ -198,7 +200,7 @@ public class FeaturesMenu : MonoBehaviour
 
         foreach (Transform child in CategoriesContainerGO.transform)
         {
-            GameObject.Destroy(child.gameObject);
+            Destroy(child.gameObject);
         }
 
         foreach (var kvp in CategoryEntries)

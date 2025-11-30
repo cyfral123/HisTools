@@ -1,4 +1,6 @@
-using UnityEngine;
+using HisTools.Features.Controllers;
+
+namespace HisTools.Features;
 
 public class FreeBuying : FeatureBase
 {

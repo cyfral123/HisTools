@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+namespace HisTools.Utils.RouteFeature;
+
 public static class SmoothUtil
 {
     // generates smooth curves between points using spline interpolation
@@ -27,9 +29,9 @@ public static class SmoothUtil
 
                 Vector3 position =
                     0.5f * ((2f * p1) +
-                    (-p0 + p2) * t +
-                    (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 +
-                    (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
+                            (-p0 + p2) * t +
+                            (2f * p0 - 5f * p1 + 4f * p2 - p3) * t2 +
+                            (-p0 + 3f * p1 - 3f * p2 + p3) * t3);
 
                 smoothed.Add(position);
             }

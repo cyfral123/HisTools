@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+namespace HisTools.Features.Controllers;
+
 public abstract class FeatureBase : IFeature
 {
     public ICategory Category { get; set; }

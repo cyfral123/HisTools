@@ -7,57 +7,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-namespace Utils;
+namespace HisTools.Utils;
 
-public class Files
+public static class Files
 {
     public static string GenerateUid() => Guid.NewGuid().ToString();
-
-    public static void EnsureAllRoutesHaveUID()
-    {
-        string routesDir = Path.Combine(Plugin.RoutesConfigPath);
-
-        if (!Directory.Exists(routesDir))
-        {
-            Logger.Warn($"Routes directory not found: {routesDir}");
-            return;
-        }
-
-        string[] jsonFiles = Directory.GetFiles(routesDir, "*.json", SearchOption.AllDirectories);
-
-        Logger.Debug($"Checking '{jsonFiles.Length}' route file(s) for missing UID...");
-
-        foreach (string file in jsonFiles)
-        {
-            try
-            {
-                string text = File.ReadAllText(file);
-                JArray arr = JArray.Parse(text);
-
-                bool changed = false;
-
-                foreach (var obj in arr)
-                {
-                    if (obj["uid"] == null)
-                    {
-                        string newUid = GenerateUid();
-                        obj["uid"] = newUid;
-                        changed = true;
-                    }
-                }
-
-                if (changed)
-                {
-                    string newJson = JsonConvert.SerializeObject(arr, Formatting.Indented);
-                    File.WriteAllText(file, newJson);
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Logger.Error($"Failed to process JSON '{file}': {ex.Message}");
-            }
-        }
-    }
 
     public static IEnumerator GetRouteFilesByTargetLevel(string targetLevel, Action<List<string>> callback)
     {
@@ -69,7 +23,7 @@ public class Files
             yield break;
         }
 
-        string routesDir = Path.Combine(Plugin.RoutesConfigPath);
+        var routesDir = Path.Combine(Plugin.RoutesConfigPath);
         if (!Directory.Exists(routesDir))
         {
             Logger.Debug($"Routes directory not found: {routesDir}");
@@ -80,7 +34,7 @@ public class Files
 
         foreach (var file in jsonFiles)
         {
-            string json = File.ReadAllText(file);
+            var json = File.ReadAllText(file);
             var arr = JArray.Parse(json);
 
             foreach (var obj in arr)
@@ -113,7 +67,7 @@ public class Files
     {
         try
         {
-            string filePath = Plugin.RoutesStateConfigFilePath;
+            var filePath = Plugin.RoutesStateConfigFilePath;
 
             var json = LoadOrRepairJson(filePath);
 
@@ -131,7 +85,7 @@ public class Files
     {
         try
         {
-            string filePath = Plugin.RoutesStateConfigFilePath;
+            var filePath = Plugin.RoutesStateConfigFilePath;
 
             var json = LoadOrRepairJson(filePath);
 
@@ -153,7 +107,7 @@ public class Files
     {
         try
         {
-            string filePath = Path.Combine(Plugin.SettingsConfigPath, $"{featureName}.json");
+            var filePath = Path.Combine(Plugin.SettingsConfigPath, $"{featureName}.json");
 
             var json = LoadOrRepairJson(filePath);
 
@@ -175,7 +129,7 @@ public class Files
     {
         try
         {
-            string filePath = Path.Combine(Plugin.SettingsConfigPath, $"{featureName}.json");
+            var filePath = Path.Combine(Plugin.SettingsConfigPath, $"{featureName}.json");
 
             var json = LoadOrRepairJson(filePath);
 
@@ -196,7 +150,7 @@ public class Files
     {
         try
         {
-            string filePath = Plugin.FeaturesStateConfigFilePath;
+            var filePath = Plugin.FeaturesStateConfigFilePath;
 
             var json = LoadOrRepairJson(filePath);
 
@@ -218,7 +172,7 @@ public class Files
             return new JObject();
         }
 
-        string text = File.ReadAllText(path);
+        var text = File.ReadAllText(path);
 
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -236,7 +190,7 @@ public class Files
             Logger.Error($"JSON corrupted '{path}' Repair attempt error: {ex.Message}");
             BackupCorrupt(path);
 
-            JObject repaired = TryRepairJson(text);
+            var repaired = TryRepairJson(text);
             if (repaired != null)
             {
                 Logger.Warn("JSON was repaired successfully");
@@ -259,12 +213,12 @@ public class Files
     {
         try
         {
-            string fixedJson = broken
+            var fixedJson = broken
                 .Trim()
                 .TrimEnd(',', ' ', '\n', '\r', '\t');
 
-            int open = fixedJson.Count(c => c == '{');
-            int close = fixedJson.Count(c => c == '}');
+            var open = fixedJson.Count(c => c == '{');
+            var close = fixedJson.Count(c => c == '}');
 
             while (close < open)
             {
@@ -285,7 +239,7 @@ public class Files
     {
         try
         {
-            string backup = path + ".corrupt_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var backup = path + ".corrupt_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
             File.Copy(path, backup, overwrite: true);
             Logger.Warn($"Backup saved: {backup}");
         }
@@ -295,7 +249,7 @@ public class Files
         }
     }
 
-    public static void SaveJsonToFile(string path, JObject json)
+    private static void SaveJsonToFile(string path, JObject json)
     {
         SaveToFile(path, json.ToString(Formatting.Indented));
     }
@@ -305,7 +259,7 @@ public class Files
         SaveToFile(path, json.ToString(Formatting.Indented));
     }
 
-    public static void SaveToFile(string path, string content)
+    private static void SaveToFile(string path, string content)
     {
         try
         {

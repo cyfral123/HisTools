@@ -1,8 +1,12 @@
 using System;
+using DG.Tweening;
+using HisTools.Features.Controllers;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using DG.Tweening;
+using Object = UnityEngine.Object;
+
+namespace HisTools.UI;
 
 public static class SettingsUI
 {
@@ -10,7 +14,7 @@ public static class SettingsUI
     public static void DrawSettingsUI(IFeature feature, RectTransform parent, int maxPerColumn = 5)
     {
         foreach (Transform child in parent)
-            GameObject.Destroy(child.gameObject);
+            Object.Destroy(child.gameObject);
 
         var row = new GameObject("Row", typeof(RectTransform));
         row.transform.SetParent(parent, false);
@@ -199,7 +203,7 @@ public static class SettingsUI
     {
         var rootGO = new GameObject($"HisTools_Slider_{setting.Name}");
         rootGO.transform.SetParent(parent, false);
-        var rect = rootGO.AddComponent<RectTransform>();
+        rootGO.AddComponent<RectTransform>();
         var layout = rootGO.AddComponent<LayoutElement>();
         layout.minHeight = 35f;
         layout.preferredWidth = 250f;
@@ -273,7 +277,7 @@ public static class SettingsUI
                 v = Mathf.Round(v / setting.Step) * setting.Step;
             v = (float)Math.Round(v, setting.Decimals);
             labelText.text = $"{setting.Name} - <color=white>{v}</color>";
-            if (setting.Value != v)
+            if (!Mathf.Approximately(setting.Value, v))
                 setting.Value = v;
             slider.SetValueWithoutNotify(setting.Value);
         });
@@ -285,7 +289,7 @@ public static class SettingsUI
     {
         var rootGO = new GameObject($"HisTools_ColorTextPicker_{setting.Name}");
         rootGO.transform.SetParent(parent, false);
-        var rect = rootGO.AddComponent<RectTransform>();
+        rootGO.AddComponent<RectTransform>();
         var layout = rootGO.AddComponent<LayoutElement>();
         layout.minHeight = 40f;
         layout.preferredWidth = 150f;

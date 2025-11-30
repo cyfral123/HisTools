@@ -1,32 +1,33 @@
+using DG.Tweening;
+using HisTools.Features.Controllers;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
-using DG.Tweening;
-using System.Linq;
-using Unity.VisualScripting;
-using System;
+
+namespace HisTools.UI.Controllers;
 
 public class SettingsPanelController : MonoBehaviour
 {
     public static SettingsPanelController Instance { get; private set; }
-    private static IFeature s_lastFeature;
+    private static IFeature _lastFeature;
 
-    private static RectTransform s_panelRect;
-    private static VerticalLayoutGroup s_layoutGroup;
+    private static RectTransform _panelRect;
+    private static VerticalLayoutGroup _layoutGroup;
 
-    private const int _itemHeight = 70;
-    private const int _itemCount = 3;
+    private const int ItemHeight = 70;
+    private const int ItemCount = 3;
 
     public void Awake()
     {
-        if (Instance != null && Instance != this)
+        if (Instance && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
         Instance = this;
 
-        Canvas parentCanvas = UI.FeaturesMenu.Canvas;
-        if (parentCanvas == null)
+        var parentCanvas = FeaturesMenu.Canvas;
+        if (!parentCanvas)
         {
             Utils.Logger.Error("Manager canvas not found!");
             return;
@@ -35,72 +36,64 @@ public class SettingsPanelController : MonoBehaviour
         var panelGO = new GameObject("HisTools_SettingsPanel");
         panelGO.transform.SetParent(parentCanvas.transform, false);
 
-        s_panelRect = panelGO.AddComponent<RectTransform>();
-        s_panelRect.anchorMin = new Vector2(0, 0);
-        s_panelRect.anchorMax = new Vector2(1, 0);
-        s_panelRect.pivot = new Vector2(0.5f, 0);
-        s_panelRect.sizeDelta = new Vector2(0, _itemCount * _itemHeight);
-        s_panelRect.anchoredPosition = Vector2.zero;
+        _panelRect = panelGO.AddComponent<RectTransform>();
+        _panelRect.anchorMin = new Vector2(0, 0);
+        _panelRect.anchorMax = new Vector2(1, 0);
+        _panelRect.pivot = new Vector2(0.5f, 0);
+        _panelRect.sizeDelta = new Vector2(0, ItemCount * ItemHeight);
+        _panelRect.anchoredPosition = Vector2.zero;
 
         var img = panelGO.AddComponent<Image>();
         img.color = new Color(0f, 0f, 0f, 0.5f);
         img.raycastTarget = false;
 
-        s_layoutGroup = panelGO.AddComponent<VerticalLayoutGroup>();
-        s_layoutGroup.childForceExpandWidth = false;
-        s_layoutGroup.childForceExpandHeight = false;
-        s_layoutGroup.childControlHeight = true;
-        s_layoutGroup.spacing = 5f;
-        s_layoutGroup.padding = new RectOffset(5, 5, 5, 5);
+        _layoutGroup = panelGO.AddComponent<VerticalLayoutGroup>();
+        _layoutGroup.childForceExpandWidth = false;
+        _layoutGroup.childForceExpandHeight = false;
+        _layoutGroup.childControlHeight = true;
+        _layoutGroup.spacing = 5f;
+        _layoutGroup.padding = new RectOffset(5, 5, 5, 5);
 
         panelGO.SetActive(false);
 
         // refresh settings panel after setting change
         EventBus.Subscribe<SettingsPanelShouldRefreshEvent>(_ =>
         {
-            if (s_lastFeature == null)
+            if (_lastFeature == null)
                 return;
 
             HideSettings();
-            HandleSettingsToggle(s_lastFeature, true);
+            HandleSettingsToggle(_lastFeature, true);
         });
     }
 
-    public void HandleSettingsToggle(IFeature currentfeature, bool force = false)
+    public void HandleSettingsToggle(IFeature currentFeature, bool force = false)
     {
-        Utils.Logger.Debug($"HandleSettingsToggle: called for '{currentfeature.Name}' ({currentfeature.Settings.Count} settings)");
+        Utils.Logger.Debug($"HandleSettingsToggle: called for '{currentFeature.Name}' ({currentFeature.Settings.Count} settings)");
 
-        if (currentfeature == null)
+        if (_lastFeature == currentFeature && !force)
         {
-            Utils.Logger.Debug("HandleSettingsToggle: Tried to show settings for null feature");
-            s_lastFeature = null;
+            _lastFeature = null;
             HideSettings();
             return;
         }
 
-        if (s_lastFeature == currentfeature && !force)
-        {
-            s_lastFeature = null;
-            HideSettings();
-            return;
-        }
-
-        s_panelRect.gameObject.SetActive(true);
-        CanvasGroup canvasGroup = s_panelRect.GetOrAddComponent<CanvasGroup>();
+        _panelRect.gameObject.SetActive(true);
+        var canvasGroup = _panelRect.GetOrAddComponent<CanvasGroup>();
         canvasGroup.alpha = 0f;
         canvasGroup.DOFade(1f, 0.5f);
 
-        foreach (Transform child in s_panelRect)
+        foreach (Transform child in _panelRect)
             Destroy(child.gameObject);
 
-        s_lastFeature = currentfeature;
+        _lastFeature = currentFeature;
 
-        SettingsUI.DrawSettingsUI(currentfeature, s_panelRect, _itemCount);
+        SettingsUI.DrawSettingsUI(currentFeature, _panelRect, ItemCount);
     }
 
     public void HideSettings()
     {
-        s_panelRect.gameObject.SetActive(false);
+        _panelRect.gameObject.SetActive(false);
     }
 
 }

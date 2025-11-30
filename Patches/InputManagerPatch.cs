@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using HarmonyLib;
 
+namespace HisTools.Patches;
+
 [HarmonyPatch(typeof(InputManager), "UpdateCursorVisibility")]
 public static class UpdateCursorVisibility_Patch
 {
@@ -10,7 +12,7 @@ public static class UpdateCursorVisibility_Patch
         var codes = new List<CodeInstruction>(instructions);
         var methodIsMenuVisible = AccessTools.PropertyGetter(typeof(UI.FeaturesMenu), "IsMenuVisible");
 
-        for (int i = 0; i < codes.Count - 1; i++)
+        for (var i = 0; i < codes.Count - 1; i++)
         {
             if (codes[i].Calls(AccessTools.Method(typeof(CommandConsole), "IsConsoleVisible")))
             {

@@ -1,5 +1,8 @@
 using DG.Tweening;
+using HisTools.UI.Controllers;
 using UnityEngine;
+
+namespace HisTools.UI;
 
 [RequireComponent(typeof(CanvasGroup))]
 public class MenuAnimator : MonoBehaviour
@@ -51,9 +54,9 @@ public class MenuAnimator : MonoBehaviour
 
         if (!canvasGroup)
         {
-            if (UI.FeaturesMenu.CanvasGroup)
+            if (FeaturesMenu.CanvasGroup)
             {
-                canvasGroup = UI.FeaturesMenu.CanvasGroup;
+                canvasGroup = FeaturesMenu.CanvasGroup;
             }
 
             if (!canvasGroup)

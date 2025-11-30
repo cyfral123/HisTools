@@ -1,9 +1,10 @@
 using System.Linq;
 using DG.Tweening;
+using HisTools.Features;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
-using Utils;
+
+namespace HisTools.Utils.RouteFeature;
 
 public class RouteStateHandler : MonoBehaviour
 {
@@ -12,8 +13,12 @@ public class RouteStateHandler : MonoBehaviour
     public float scaleFactor = 1.2f;
     public float maxInteractionDistance = 100f;
     public float boundsExpansion = 0.7f;
-    public Color hiddenColor = Palette.HtmlWithForceAlpha(Plugin.RouteLabelDisabledColorHtml.Value, Plugin.RouteLabelDisabledOpacityHtml.Value / 100.0f);
-    public Color shownColor = Palette.HtmlWithForceAlpha(Plugin.RouteLabelEnabledColorHtml.Value, Plugin.RouteLabelEnabledOpacityHtml.Value / 100.0f);
+
+    public Color hiddenColor = Palette.HtmlWithForceAlpha(Plugin.RouteLabelDisabledColorHtml.Value,
+        Plugin.RouteLabelDisabledOpacityHtml.Value / 100.0f);
+
+    public Color shownColor = Palette.HtmlWithForceAlpha(Plugin.RouteLabelEnabledColorHtml.Value,
+        Plugin.RouteLabelEnabledOpacityHtml.Value / 100.0f);
 
     private TextMeshPro tmp;
     private Transform cam;
@@ -24,7 +29,7 @@ public class RouteStateHandler : MonoBehaviour
     private void Awake()
     {
         tmp = GetComponentInChildren<TextMeshPro>();
-        cam = Camera.main.transform;
+        cam = Camera.main?.transform;
 
         baseScale = tmp.transform.localScale;
         EventBus.Subscribe<ToggleRouteEvent>(OnToggleRouteEvent);
@@ -56,17 +61,7 @@ public class RouteStateHandler : MonoBehaviour
 
     private void HandleClick()
     {
-        bool isActive = IsRouteActive();
-
-        if (isActive)
-        {
-            EventBus.Publish(new ToggleRouteEvent(Uid, false));
-        }
-        else
-        {
-            EventBus.Publish(new ToggleRouteEvent(Uid, true));
-        }
-
+        EventBus.Publish(new ToggleRouteEvent(Uid, !IsRouteActive()));
 
         PlayTween();
     }
@@ -76,14 +71,14 @@ public class RouteStateHandler : MonoBehaviour
         if (e.Uid != Uid)
             return;
         show = e.Show;
-        Utils.Files.SaveRouteStateToConfig(e.Uid, e.Show);
-        Utils.Logger.Debug($"Route state saved: active={e.Show}, uid={e.Uid}");
+        Files.SaveRouteStateToConfig(e.Uid, e.Show);
+        Logger.Debug($"Route state saved: active={e.Show}, uid={e.Uid}");
         PlayTween();
     }
 
     private void PlayTween()
     {
-        if (this == null || transform == null)
+        if (!this || !transform)
         {
             return;
         }

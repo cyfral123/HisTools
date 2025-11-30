@@ -1,3 +1,5 @@
+namespace HisTools.Features.Controllers;
+
 public abstract class SettingBase<T>(IFeature feature, string name, string description, T defaultValue) : IFeatureSetting<T>
 {
     public IFeature Feature { get; } = feature;

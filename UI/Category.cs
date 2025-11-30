@@ -1,17 +1,17 @@
-using UI.Controllers;
+using HisTools.Features.Controllers;
+using HisTools.UI.Controllers;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UI;
+namespace HisTools.UI;
 
 public class MyCategory : ICategory
 {
-    public string Name { get; private set; }
+    public string Name { get; }
     public Transform LayoutTransform => LayoutGO.transform;
 
-    public VerticalLayoutGroup Layout { get; private set; }
-    public GameObject LayoutGO => Layout.gameObject;
-    public RectTransform CategoryRect { get; private set; }
+    private VerticalLayoutGroup Layout { get; }
+    private GameObject LayoutGO => Layout.gameObject;
 
     public MyCategory(GameObject parent, string name, Vector2 initialPosition)
     {
@@ -27,7 +27,6 @@ public class MyCategory : ICategory
         rectCategory.pivot = new Vector2(0.5f, 1f);
         rectCategory.sizeDelta = new Vector2(200, 0);
         rectCategory.anchoredPosition = initialPosition;
-        CategoryRect = rectCategory;
 
         var rootGroup = categoryGO.AddComponent<CanvasGroup>();
         rootGroup.alpha = 0f;

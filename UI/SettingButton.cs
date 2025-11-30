@@ -1,9 +1,10 @@
 using System;
 using System.Linq;
+using HisTools.Features.Controllers;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UI;
+namespace HisTools.UI;
 
 [RequireComponent(typeof(Toggle), typeof(RectTransform), typeof(Button))]
 public class SettingsButton : MonoBehaviour

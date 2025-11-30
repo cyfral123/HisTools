@@ -1,6 +1,8 @@
-using UnityEngine;
-using TMPro;
 using DG.Tweening;
+using TMPro;
+using UnityEngine;
+
+namespace HisTools.Utils.RouteFeature;
 
 public class LabelLookAnimation : MonoBehaviour
 {
@@ -12,103 +14,110 @@ public class LabelLookAnimation : MonoBehaviour
 
     public Collider sharedCollider;
 
-    private TextMeshPro tmp;
-    private Transform cam;
-    private Color baseColor;
-    private Vector3 baseScale;
-    private Tween currentTween;
-    private bool isActive;
-    private Shader shader = Shader.Find("Unlit/Color");
-    private GameObject backgroundGO;
+    private TextMeshPro _tmp;
+    private Transform _cam;
+    private Color _baseColor;
+    private Vector3 _baseScale;
+    private Tween _currentTween;
+    private bool _isActive;
+    private readonly Shader _shader = Shader.Find("Unlit/Color");
+    private GameObject _backgroundGo;
 
     private void Awake()
     {
-        tmp = GetComponentInChildren<TextMeshPro>();
-        cam = Camera.main.transform;
+        _tmp = GetComponentInChildren<TextMeshPro>();
+        _cam = Camera.main?.transform;
 
-        baseColor = tmp.color;
-        baseScale = tmp.transform.localScale;
+        _baseColor = _tmp.color;
+        _baseScale = _tmp.transform.localScale;
 
         CreateBackground();
-        backgroundGO.SetActive(false);
+        _backgroundGo.SetActive(false);
     }
 
     private void CreateBackground()
     {
-        backgroundGO = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        backgroundGO.name = "TextBackground";
-        backgroundGO.transform.SetParent(tmp.transform, false);
-        backgroundGO.transform.localPosition = new Vector3(0, 0, 0.01f);
+        _backgroundGo = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        _backgroundGo.name = "TextBackground";
+        _backgroundGo.transform.SetParent(_tmp.transform, false);
+        _backgroundGo.transform.localPosition = new Vector3(0, 0, 0.01f);
 
-        var mat = new Material(shader);
-        mat.color = Utils.Palette.FromHtml(Plugin.BackgroundHtml.Value);
-        backgroundGO.GetComponent<MeshRenderer>().material = mat;
+        var mat = new Material(_shader)
+        {
+            color = Palette.FromHtml(Plugin.BackgroundHtml.Value)
+        };
+        _backgroundGo.GetComponent<MeshRenderer>().material = mat;
 
-        GameObject.Destroy(backgroundGO.GetComponent<Collider>());
+        Destroy(_backgroundGo.GetComponent<Collider>());
 
         UpdateBackgroundSize();
     }
 
     private void UpdateBackgroundSize()
     {
-        var bounds = tmp.bounds;
-        backgroundGO.transform.localScale = new Vector3(bounds.size.x, bounds.size.y, 1f);
+        var bounds = _tmp.bounds;
+        _backgroundGo.transform.localScale = new Vector3(bounds.size.x, bounds.size.y, 1f);
     }
 
     private void Update()
     {
-        if (cam == null || tmp == null)
+        if (!_cam || !_tmp)
             return;
 
-        bool hitThis = false;
-        Ray ray = new Ray(cam.position, cam.forward);
+        var hitThis = false;
+        var ray = new Ray(_cam.position, _cam.forward);
 
-        Bounds bounds = tmp.GetComponent<Renderer>().bounds;
+        var bounds = _tmp.GetComponent<Renderer>().bounds;
         bounds.Expand(boundsExpansion);
 
-        if (bounds.IntersectRay(ray, out float distance))
+        if (bounds.IntersectRay(ray, out var distance))
         {
             if (distance <= maxDistance)
                 hitThis = true;
         }
 
-        if (hitThis && !isActive)
-            Activate();
-        else if (!hitThis && isActive)
-            Deactivate();
+        switch (hitThis)
+        {
+            case true when !_isActive:
+                Activate();
+                break;
+            case false when _isActive:
+                Deactivate();
+                break;
+        }
     }
 
     private void Activate()
     {
-        if (this == null || transform == null)
+        if (!this || !transform)
         {
             return;
         }
 
-        isActive = true;
-        currentTween?.Kill();
+        _isActive = true;
+        _currentTween?.Kill();
 
-        backgroundGO.SetActive(true);
+        _backgroundGo.SetActive(true);
 
-        currentTween = DOTween.Sequence()
-            .Join(tmp.DOColor(targetColor, tweenDuration))
-            .Join(tmp.transform.DOScale(baseScale * scaleFactor, tweenDuration).SetEase(Ease.OutBack));
+        _currentTween = DOTween.Sequence()
+            .Join(_tmp.DOColor(targetColor, tweenDuration))
+            .Join(_tmp.transform.DOScale(_baseScale * scaleFactor, tweenDuration).SetEase(Ease.OutBack));
     }
 
     private void Deactivate()
     {
-        if (this == null || transform == null)
+        if (!this || !transform)
         {
             return;
         }
 
-        isActive = false;
-        currentTween?.Kill();
+        _isActive = false;
+        _currentTween?.Kill();
 
-        backgroundGO.SetActive(false);
+        _backgroundGo.SetActive(false);
 
-        currentTween = DOTween.Sequence()
-            .Join(tmp.DOColor(baseColor, tweenDuration))
-            .Join(tmp.transform.DOScale(baseScale, tweenDuration).SetEase(Ease.InOutSine));
+        _currentTween = DOTween.Sequence()
+            .Join(_tmp.DOColor(_baseColor, tweenDuration))
+            .Join(_tmp.transform.DOScale(_baseScale, tweenDuration).SetEase(Ease.InOutSine));
     }
 }

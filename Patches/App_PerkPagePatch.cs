@@ -2,20 +2,24 @@ using System;
 using System.Reflection;
 using DG.Tweening;
 using HarmonyLib;
+using HisTools.Features;
+using HisTools.Features.Controllers;
 using UnityEngine;
+
+namespace HisTools.Patches;
 
 public static class App_PerkPagePatch
 {
     [HarmonyPatch(typeof(App_PerkPage), "PurchaseRefresh")]
     public static class App_PerkPage_Refresh_Patch
     {
-        private static readonly FieldInfo _fullfilled;
-        private static readonly MethodInfo _generateCards;
+        private static readonly FieldInfo FullFilled;
+        private static readonly MethodInfo GenerateCards;
 
         static App_PerkPage_Refresh_Patch()
         {
-            _fullfilled = typeof(App_PerkPage).GetField("fullfilled", BindingFlags.NonPublic | BindingFlags.Instance);
-            _generateCards = AccessTools.Method(typeof(App_PerkPage), "GenerateCards");
+            FullFilled = typeof(App_PerkPage).GetField("fullfilled", BindingFlags.NonPublic | BindingFlags.Instance);
+            GenerateCards = AccessTools.Method(typeof(App_PerkPage), "GenerateCards");
         }
 
         public static bool Prefix(App_PerkPage __instance)
@@ -28,12 +32,12 @@ public static class App_PerkPagePatch
                 {
                     if (freeBuying.GetSetting<BoolSetting>("Refresh perks").Value)
                     {
-                        var fullFilled = (bool)_fullfilled.GetValue(__instance);
+                        var fullFilled = (bool)FullFilled.GetValue(__instance);
 
                         if (!fullFilled) // && CL_GameManager.roaches >= refreshCost)
                         {
                             // CL_GameManager.AddRoaches(-refreshCost);
-                            _generateCards.Invoke(__instance, [true]);
+                            GenerateCards.Invoke(__instance, [true]);
                         }
 
                         return false;

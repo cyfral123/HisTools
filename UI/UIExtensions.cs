@@ -1,5 +1,7 @@
-using UnityEngine;
 using TMPro;
+using UnityEngine;
+
+namespace HisTools.UI;
 
 public static class UIExtensions
 {

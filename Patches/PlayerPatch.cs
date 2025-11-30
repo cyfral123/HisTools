@@ -1,24 +1,22 @@
-using HarmonyLib;
-using UnityEngine;
 using System.Reflection;
-using UI;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Emit;
+using HarmonyLib;
+using HisTools.UI;
+using UnityEngine;
 
+namespace HisTools.Patches;
 
 public static class PlayerPatch
 {
     [HarmonyPatch(typeof(ENT_Player), "LateUpdate")]
     public static class PlayerPatch_LateUpdate_Patch
     {
-        private static readonly FieldInfo _camSpeedField;
-        private static readonly FieldInfo _velocity;
+        private static readonly FieldInfo CamSpeedField;
+        private static readonly FieldInfo Velocity;
 
         static PlayerPatch_LateUpdate_Patch()
         {
-            _camSpeedField = typeof(ENT_Player).GetField("camSpeed", BindingFlags.NonPublic | BindingFlags.Instance);
-            _velocity = typeof(ENT_Player).GetField("vel", BindingFlags.NonPublic | BindingFlags.Instance);
+            CamSpeedField = typeof(ENT_Player).GetField("camSpeed", BindingFlags.NonPublic | BindingFlags.Instance);
+            Velocity = typeof(ENT_Player).GetField("vel", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
         // Patch for enabling cursor while tools menu is opened
@@ -36,13 +34,10 @@ public static class PlayerPatch
             }
 
             // no __instance.LockCamera() because it makes movement lags
-            if (FeaturesMenu.IsMenuVisible)
-                _camSpeedField.SetValue(__instance, 0f);
-            else
-                _camSpeedField.SetValue(__instance, 1f);
+            CamSpeedField.SetValue(__instance, FeaturesMenu.IsMenuVisible ? 0f : 1f);
 
-            var vel = (Vector3)_velocity.GetValue(__instance);
-            EventBus.Publish(new PlayerLateUpdateEvent(__instance, vel));
+            var vel = (Vector3)Velocity.GetValue(__instance);
+            EventBus.Publish(new PlayerLateUpdateEvent(vel));
         }
     }
 }

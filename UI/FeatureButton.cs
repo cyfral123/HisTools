@@ -1,8 +1,9 @@
+using HisTools.Features.Controllers;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace UI;
+namespace HisTools.UI;
 
 [RequireComponent(typeof(Toggle))]
 public class FeatureButton : MonoBehaviour

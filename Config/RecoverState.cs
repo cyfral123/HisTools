@@ -1,6 +1,8 @@
+using HisTools.Features.Controllers;
+using HisTools.Utils;
 using Newtonsoft.Json.Linq;
-using System.IO;
-using Utils;
+
+namespace HisTools.Config;
 
 public static class RecoverState
 {
@@ -11,7 +13,7 @@ public static class RecoverState
         foreach (var kvp in json)
         {
             var feature = FeatureRegistry.GetByName(kvp.Key);
-            if (feature == null || !kvp.Value.Type.Equals(JTokenType.Boolean))
+            if (kvp.Value != null && (feature == null || !kvp.Value.Type.Equals(JTokenType.Boolean)))
             {
                 Logger.Warn($"RecoverState: Feature invalid '{kvp.Key}'");
                 continue;

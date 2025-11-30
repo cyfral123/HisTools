@@ -1,6 +1,7 @@
-using System;
 using DG.Tweening;
 using UnityEngine;
+
+namespace HisTools.UI.Controllers;
 
 public class CategoriesAnimator : MonoBehaviour
 {
@@ -16,12 +17,13 @@ public class CategoriesAnimator : MonoBehaviour
         _rects = new RectTransform[_groups.Length];
         _originalPositions = new Vector2[_groups.Length];
 
-        for (int i = 0; i < _groups.Length; i++)
+        for (var i = 0; i < _groups.Length; i++)
         {
             var g = _groups[i];
             var rect = g.transform as RectTransform;
             _rects[i] = rect;
 
+            if (!rect) continue;
             _originalPositions[i] = rect.anchoredPosition;
 
             g.alpha = 0f;
@@ -36,9 +38,10 @@ public class CategoriesAnimator : MonoBehaviour
         if (_groups == null || _groups.Length == 0)
             Refresh();
 
-        float d = 0f;
+        var d = 0f;
 
-        for (int i = 0; i < _groups.Length; i++)
+        if (_groups == null) return;
+        for (var i = 0; i < _groups.Length; i++)
         {
             var g = _groups[i];
             var rect = _rects[i];
