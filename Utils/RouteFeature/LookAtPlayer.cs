@@ -3,30 +3,29 @@ using UnityEngine;
 
 namespace HisTools.Utils.RouteFeature;
 
+[RequireComponent(typeof(TextMeshPro))]
 public class LookAtPlayer : MonoBehaviour
 {
     public Transform player;
     public float minDistanceSqr = 0.1f;
     public Color textColor = Color.clear;
 
-    private TextMeshPro tmp;
+    private TextMeshPro _tmp;
 
     private void Awake()
     {
-        tmp = GetComponent<TextMeshPro>();
+        _tmp = GetComponent<TextMeshPro>();
     }
-
     private void Update()
     {
-        if (player == null) return;
+        if (!player) return;
+        
+        var lookDir = transform.position - player.position;
 
-        Vector3 lookDir = transform.position - player.position;
+        if (!(lookDir.sqrMagnitude > minDistanceSqr)) return;
 
-        if (lookDir.sqrMagnitude > minDistanceSqr)
-        {
-            transform.rotation = Quaternion.LookRotation(lookDir);
-            if (textColor != Color.clear)
-                tmp?.color = textColor;
-        }
+        transform.rotation = Quaternion.LookRotation(lookDir);
+        if (textColor != Color.clear)
+            _tmp?.color = textColor;
     }
 }

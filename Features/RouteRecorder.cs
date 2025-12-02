@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HisTools.Features.Controllers;
+using HisTools.Prefabs;
 using HisTools.Utils;
 using HisTools.Utils.RouteFeature;
 using LibBSP;
@@ -27,7 +28,7 @@ public class RouteRecorder : FeatureBase
     private GameObject _markerPrefab;
     private Transform _player;
 
-    private readonly string _jumpButton = "Jump";
+    private const string JumpButton = "Jump";
 
     public RouteRecorder() : base("RouteRecorder", "Record route for current level and save to json")
     {
@@ -60,13 +61,17 @@ public class RouteRecorder : FeatureBase
         }
 
 
-        _markerPrefab = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        Object.Destroy(_markerPrefab.GetComponent<BoxCollider>());
-        _markerPrefab.transform.rotation = Quaternion.Euler(45f, 45f, 0f);
-
-        var mat = new Material(Shader.Find("Sprites/Default")) { color = Color.cyan };
-        _markerPrefab.GetComponent<Renderer>().material = mat;
-        _markerPrefab.SetActive(false);
+        if (!_markerPrefab)
+        {
+            if (PrefabDatabase.Instance.GetPrefab("histools/SphereMarker", false)
+                .TryGet(out var prefab))
+            {
+                var go = Object.Instantiate(prefab);
+                go.AddComponent<MarkerActivator>();
+                go.GetComponent<Renderer>().material.color = Color.cyan;
+                _markerPrefab = go;
+            }
+        }
 
         _player = playerObj.transform;
 
@@ -215,7 +220,7 @@ public class RouteRecorder : FeatureBase
         if (!_player || !level) return;
         var playerPos = level.transform.InverseTransformPoint(_player.position);
         var distanceToStop = GetSetting<FloatSliderSetting>("Auto stop distance").Value;
-        var jumped = InputManager.GetButton(_jumpButton).Down;
+        var jumped = InputManager.GetButton(JumpButton).Down;
         var quality = GetSetting<FloatSliderSetting>("Record quality");
         // invert slider, because minimum distance is maximum quality
         var minDistance = Math.Round(math.remap(quality.Min, quality.Max, quality.Max, quality.Min, quality.Value), 2);

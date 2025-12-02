@@ -2,10 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using HisTools.Features.Controllers;
+using HisTools.Prefabs;
 using HisTools.Utils;
 using HisTools.Utils.RouteFeature;
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using CoroutineRunner = HisTools.Utils.CoroutineRunner;
 
@@ -19,11 +19,11 @@ public class RoutePlayer : FeatureBase
     private Transform _infoLabelsContainer;
     private Transform _playerTransform;
 
+    private GameObject _routeNameLabelPrefab;
+    private GameObject _routeDescriptionLabelPrefab;
+    private TextMeshPro _notePrefab;
+    private LineRenderer _linePrefab;
     private GameObject _markerPrefab;
-    private GameObject _infoLabelPrefab;
-    private GameObject _notePrefab;
-    private GameObject _linePrefab;
-
     private readonly Material _defaultMaterial;
     private bool _isLoading;
 
@@ -44,7 +44,7 @@ public class RoutePlayer : FeatureBase
             7f, 0f, 10f, 0.1f, 1));
         AddSetting(new FloatSliderSetting(this, "JumpMarkers size",
             "Size of markers",
-            0.15f, 0f, 0.8f, 0.05f, 2));
+            0.25f, 0f, 0.8f, 0.05f, 2));
         AddSetting(new FloatSliderSetting(this, "Fade distance",
             "Distance to pathline to start fading",
             8f, 0f, 20f, 1f, 0));
@@ -73,7 +73,8 @@ public class RoutePlayer : FeatureBase
 
     private void EnsurePrefabs()
     {
-        if (_markerPrefab && _infoLabelPrefab && _notePrefab && _linePrefab && _infoLabelsContainer) return;
+        if (_routeNameLabelPrefab && _routeDescriptionLabelPrefab && _notePrefab && _linePrefab &&
+            _infoLabelsContainer) return;
         Utils.Logger.Debug("Some prefabs are missing, creating them");
         CreatePrefabsIfNeeded();
     }
@@ -98,59 +99,82 @@ public class RoutePlayer : FeatureBase
         if (!_infoLabelsContainer)
             _infoLabelsContainer = new GameObject("HisTools_InfoLabelsContainer").transform;
 
-        if (!_markerPrefab)
+        if (!_routeNameLabelPrefab)
         {
-            _markerPrefab = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Object.Destroy(_markerPrefab.GetComponent<BoxCollider>());
-            _markerPrefab.transform.rotation = Quaternion.Euler(45, 45, 0);
-            _markerPrefab.GetComponent<Renderer>().material = _defaultMaterial;
-            _markerPrefab.AddComponent<MarkerActivator>();
-            _markerPrefab.SetActive(false);
+            if (PrefabDatabase.Instance.GetPrefab("histools/InfoLabel", false)
+                .TryGet(out var prefab))
+            {
+                var go = Object.Instantiate(prefab);
+                var tmp = go.GetComponent<TextMeshPro>();
+                tmp.color = Palette.HtmlWithForceAlpha(Plugin.RouteLabelEnabledColorHtml.Value,
+                    Plugin.RouteLabelEnabledOpacityHtml.Value / 100.0f);
+                var look = go.AddComponent<LookAtPlayer>();
+                look.player = _playerTransform;
+                _routeNameLabelPrefab = go;
+            }
         }
 
-        if (!_infoLabelPrefab)
+        if (!_routeDescriptionLabelPrefab)
         {
-            _infoLabelPrefab = new GameObject($"HisTools_InfoLabel_Prefab");
-            var tmp = _infoLabelPrefab.AddComponent<TextMeshPro>();
-            tmp.text = "InfoLabel";
-            tmp.fontSize = 1;
-            tmp.color = Palette.HtmlWithForceAlpha(Plugin.RouteLabelEnabledColorHtml.Value,
-                Plugin.RouteLabelEnabledOpacityHtml.Value / 100.0f);
-            tmp.alignment = TextAlignmentOptions.Center;
-            var look = tmp.AddComponent<LookAtPlayer>();
-            look.player = _playerTransform;
-            _infoLabelPrefab.SetActive(false);
+            if (PrefabDatabase.Instance.GetPrefab("histools/InfoLabel", false)
+                .TryGet(out var prefab))
+            {
+                var go = Object.Instantiate(prefab);
+                var tmp = go.GetComponent<TextMeshPro>();
+                tmp.color = Palette.FromHtml(Plugin.BackgroundHtml.Value);
+                var look = go.AddComponent<LookAtPlayer>();
+                look.player = _playerTransform;
+                go.AddComponent<LabelLookAnimation>();
+                
+                _routeDescriptionLabelPrefab = go;
+            }
+        }
+
+        if (!_markerPrefab)
+        {
+            if (PrefabDatabase.Instance.GetPrefab("histools/SphereMarker", false)
+                .TryGet(out var prefab))
+            {
+                var go = Object.Instantiate(prefab);
+                go.AddComponent<MarkerActivator>();
+                go.GetComponent<Renderer>().material.color = GetSetting<ColorSetting>("Remaining color").Value;
+                _markerPrefab = go;
+            }
         }
 
         if (!_notePrefab)
         {
-            _notePrefab = new GameObject($"HisTools_Note_Prefab");
-            var tmp = _notePrefab.AddComponent<TextMeshPro>();
-            tmp.text = "YourNote";
-            tmp.fontSize = 3;
-            tmp.color = GetSetting<ColorSetting>("Text color").Value;
-            tmp.alignment = TextAlignmentOptions.Center;
-            var look = tmp.AddComponent<LookAtPlayer>();
-            look.player = _playerTransform;
-            _notePrefab.SetActive(false);
+            if (PrefabDatabase.Instance.GetPrefab("histools/InfoLabel", false)
+                .TryGet(out var prefab))
+            {
+                var go = Object.Instantiate(prefab);
+                var tmp = go.GetComponent<TextMeshPro>();
+                tmp.fontSize = 3;
+                tmp.color = GetSetting<ColorSetting>("Text color").Value;
+                var look = go.AddComponent<LookAtPlayer>();
+                look.player = _playerTransform;
+                _notePrefab = tmp;
+            }
         }
 
         if (!_linePrefab)
         {
-            _linePrefab = new GameObject("HisTools_Line_Prefab");
-
-            var line = _linePrefab.AddComponent<LineRenderer>();
-            line.startWidth = 0.1f;
-            line.endWidth = 0.1f;
-            line.material = _defaultMaterial;
-            _linePrefab.SetActive(false);
+            var go = new GameObject("HisTools_Line_Prefab");
+            go.SetActive(false);
+            
+            _linePrefab = go.AddComponent<LineRenderer>();
+            _linePrefab.startWidth = 0.1f;
+            _linePrefab.endWidth = 0.1f;
+            _linePrefab.material = _defaultMaterial;
+            _linePrefab.startColor = GetSetting<ColorSetting>("Remaining color").Value;
+            _linePrefab.endColor = GetSetting<ColorSetting>("Remaining color").Value;
         }
     }
 
     public override void OnEnable()
     {
         var level = CL_EventManager.currentLevel;
-        if (level != null)
+        if (level)
             DrawRoutes(level);
 
         EventBus.Subscribe<ToggleRouteEvent>(OnToggleRoute);
@@ -174,7 +198,7 @@ public class RoutePlayer : FeatureBase
             Object.Destroy(kvp.Value.Root);
         }
 
-        if (_infoLabelsContainer != null)
+        if (_infoLabelsContainer)
         {
             foreach (Transform child in _infoLabelsContainer)
             {
@@ -242,22 +266,27 @@ public class RoutePlayer : FeatureBase
         // 1) Convert local points to absolute positions
         var absolutePoints = new List<Vector3>(routeData.points.Count);
         absolutePoints.AddRange(routeData.points.Select(Vectors.ConvertPointToAbsolute));
-
+        
+        yield return new WaitForEndOfFrame();
+        
         // 2) SmoothPath
         absolutePoints = SmoothUtil.Path(absolutePoints, GetSetting<FloatSliderSetting>("Line quality").Value);
 
-        yield return null;
+        yield return new WaitForEndOfFrame();
 
         // 3) LineRenderer
-        var line = CreateLine(absolutePoints, routeRoot.transform);
-        var lineRenderer = line.GetComponent<LineRenderer>();
+        var lineRenderer = CreateLine(absolutePoints, routeRoot.transform);
         instance.Line = lineRenderer;
-
+        
+        yield return new WaitForEndOfFrame();
+        
         // 4) Info labels
         var showRouteNames = GetSetting<BoolSetting>("Show route names").Value;
         var showRouteAuthors = GetSetting<BoolSetting>("Show route authors").Value;
         var showRouteDescriptions = GetSetting<BoolSetting>("Show route descriptions").Value;
-
+        
+        yield return new WaitForEndOfFrame();
+        
         if (instance.Info != null)
         {
             var routeEntryPoint = absolutePoints[0];
@@ -267,52 +296,61 @@ public class RoutePlayer : FeatureBase
                 nameAuthorText += $" (by {instance.Info.author})";
 
             var descriptionText = instance.Info.description;
-
+            
             if (showRouteNames)
             {
-                var routeNameAuthor = CreateTextLabel(_infoLabelPrefab, nameAuthorText, Color.clear, routeEntryPoint,
+                var routeNameAuthor = Object.Instantiate(_routeNameLabelPrefab, routeEntryPoint, Quaternion.identity,
                     _infoLabelsContainer);
-                routeNameAuthor.AddComponent<RouteStateHandler>().Uid = instance.Info.uid;
                 routeNameAuthor.SetActive(true);
+                
+                
+                routeNameAuthor.AddComponent<RouteStateHandler>().Uid = instance.Info.uid;
+                var tmp = routeNameAuthor.GetComponent<TextMeshPro>();
+                tmp.text = nameAuthorText;
                 instance.InfoLabels.Add(routeNameAuthor);
             }
-
+            
+            yield return new WaitForEndOfFrame();
+            
             if (showRouteDescriptions && !string.IsNullOrEmpty(instance.Info.description))
             {
-                var color = Palette.FromHtml(Plugin.BackgroundHtml.Value);
-                var routeDescription = CreateTextLabel(_infoLabelPrefab, descriptionText, color, routeEntryPoint,
+                var routeDescription = Object.Instantiate(_routeDescriptionLabelPrefab, routeEntryPoint,
+                    Quaternion.identity,
                     _infoLabelsContainer);
+                routeDescription.SetActive(true);
+                
                 var tmp = routeDescription.GetComponent<TextMeshPro>();
-
+                tmp.text = descriptionText;
+                
                 tmp.ForceMeshUpdate();
                 var lines = tmp.textInfo.lineCount;
                 if (lines < 1) lines = 1;
 
                 routeDescription.transform.position -= Vector3.up * (0.15f * lines);
-                routeDescription.AddComponent<LabelLookAnimation>();
-                routeDescription.SetActive(true);
                 instance.InfoLabels.Add(routeDescription);
             }
         }
 
-        yield return null;
+        yield return new WaitForEndOfFrame();
 
         // 5) Notes
-        var noteColor = GetSetting<ColorSetting>("Text color").Value;
-
         foreach (var note in routeData.notes)
         {
             var localPoint = note.Position;
             var absolutePos = Vectors.ConvertPointToAbsolute(localPoint);
 
-            var noteLabel = CreateTextLabel(_notePrefab, note.note, noteColor, absolutePos, routeRoot.transform);
-
-            instance.NoteLabels.Add(noteLabel);
+            var noteLabel = Object.Instantiate(_notePrefab, absolutePos, Quaternion.identity,
+                routeRoot.transform);
+            noteLabel.text = note.note;
+            noteLabel.gameObject.SetActive(true);
+            instance.NoteLabels.Add(noteLabel.gameObject);
         }
+        
+        yield return new WaitForEndOfFrame();
 
         // 6) Jump markers
         var markerSize = GetSetting<FloatSliderSetting>("JumpMarkers size").Value;
-
+        
         foreach (var index in routeData.jumpIndices)
         {
             if (index < 0 || index >= routeData.points.Count)
@@ -320,12 +358,14 @@ public class RoutePlayer : FeatureBase
 
             var localPoint = routeData.points[index];
             var absolutePos = Vectors.ConvertPointToAbsolute(localPoint);
+            
+            var jumpMarker = Object.Instantiate(_markerPrefab, absolutePos, Quaternion.identity, routeRoot.transform);
+            
+            jumpMarker.transform.localScale = Vector3.one * markerSize;
+            jumpMarker.SetActive(true);
 
-            var jumpMarker = CreateJumpMarker(markerSize, absolutePos, routeRoot.transform);
             instance.JumpMarkers.Add(jumpMarker);
         }
-
-        yield return null;
 
         ActiveRoutes[instance.Info.uid] = instance;
 
@@ -340,19 +380,17 @@ public class RoutePlayer : FeatureBase
         );
     }
 
-    private GameObject CreateLine(IReadOnlyList<Vector3> absolutePoints, Transform parent, float startWidth = 0.1f,
+    private LineRenderer CreateLine(IReadOnlyList<Vector3> absolutePoints, Transform parent, float startWidth = 0.1f,
         float endWidth = 0.1f, Material material = null)
     {
-        EnsurePrefabs();
         if (!_linePrefab)
         {
             Utils.Logger.Error("CreateLine: _linePrefab is null");
             return null;
         }
 
-        var line = Object.Instantiate(_linePrefab, parent);
-
-        var renderer = line.GetComponent<LineRenderer>();
+        var renderer = Object.Instantiate(_linePrefab, parent);
+        
         renderer.positionCount = absolutePoints.Count;
 
         if (absolutePoints is Vector3[] arr)
@@ -367,46 +405,11 @@ public class RoutePlayer : FeatureBase
             renderer.material = material;
 
 
-        line.SetActive(true);
+        renderer.gameObject.SetActive(true);
 
-        return line;
+        return renderer;
     }
-
-    private GameObject CreateTextLabel(GameObject prefab, string text, Color color, Vector3 position, Transform parent)
-    {
-        EnsurePrefabs();
-
-        if (!prefab)
-        {
-            Utils.Logger.Error("CreateTextLabel: prefab is null");
-            return null;
-        }
-
-        var label = Object.Instantiate(prefab, position, Quaternion.identity, parent);
-        var tmp = label.GetComponent<TextMeshPro>();
-        tmp.text = text;
-
-        if (color != Color.clear)
-            tmp.color = color;
-
-        label.SetActive(true);
-
-        return label;
-    }
-
-    private GameObject CreateJumpMarker(float markerSize, Vector3 position, Transform parent)
-    {
-        EnsurePrefabs();
-
-        var marker = Object.Instantiate(_markerPrefab, position, Quaternion.identity, parent);
-        marker.transform.position = position;
-        marker.transform.localScale = Vector3.one * markerSize;
-
-        marker.SetActive(true);
-
-        return marker;
-    }
-
+    
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
         if (ActiveRoutes.Count == 0 || _playerTransform == null || _isLoading)

@@ -1,15 +1,16 @@
 using System.Text;
 using HisTools.Features.Controllers;
-using HisTools.UI;
+using HisTools.Prefabs;
 using TMPro;
 using UnityEngine;
+using Logger = HisTools.Utils.Logger;
 
 namespace HisTools.Features;
 
 public class DebugInfo : FeatureBase
 {
-    private Canvas _debugCanvas;
-    private TextMeshProUGUI _debugText;
+    private TextMeshProUGUI _uiText;
+    private Canvas _uiCanvas;
 
     private readonly StringBuilder _summary = new();
     private float _speedValue;
@@ -21,6 +22,17 @@ public class DebugInfo : FeatureBase
     public DebugInfo() : base("DebugInfo", "Show various debug info on screen")
     {
         AddSettings();
+    }
+
+    private void EnsurePrefab()
+    {
+        if (_uiCanvas && _uiText) return;
+
+        if (!PrefabDatabase.Instance.GetPrefab("histools/Feature_DebugInfo", false)
+                .TryGet(out var prefab)) return;
+        var go = Object.Instantiate(prefab);
+        _uiCanvas = go.GetComponentInChildren<Canvas>(true);
+        _uiText = go.GetComponentInChildren<TextMeshProUGUI>(true);
     }
 
     private void AddSettings()
@@ -42,29 +54,10 @@ public class DebugInfo : FeatureBase
         var playerObj = GameObject.Find("CL_Player");
         if (!playerObj)
         {
-            Utils.Logger.Error("RoutePlayer: Player object not found");
+            Logger.Error("RoutePlayer: Player object not found");
         }
 
         _playerTransform = playerObj.transform;
-    }
-
-    private void EnsureUI()
-    {
-        EnsurePlayer();
-        if (_debugCanvas && _debugText)
-            return;
-
-        _debugCanvas = new GameObject($"HisTools_{Name}_Canvas").AddComponent<Canvas>();
-        _debugCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-        _debugText = _debugCanvas.transform.AddMyText(
-            content: "DebugInfo",
-            aligment: TextAlignmentOptions.Bottom,
-            fontsize: 16f,
-            color: Color.white
-        );
-
-        _debugCanvas.gameObject.SetActive(false);
     }
 
     public override void OnEnable()
@@ -73,7 +66,9 @@ public class DebugInfo : FeatureBase
         EventBus.Subscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
 
         var usePalette = GetSetting<BoolSetting>("Color from palette").Value;
-        _bgTextColor = usePalette ? Utils.Palette.HtmlTransparent(Plugin.BackgroundHtml.Value, 0.5f) : "#000000AA";
+        _bgTextColor = usePalette
+            ? Utils.Palette.HtmlTransparent(Plugin.BackgroundHtml.Value, 0.5f)
+            : "#000000AA";
         _fgTextColor = usePalette
             ? Utils.Palette.RGBAToHex(Utils.Palette.HtmlColorLight(Plugin.AccentHtml.Value, 1.8f))
             : "green";
@@ -84,8 +79,7 @@ public class DebugInfo : FeatureBase
         EventBus.Unsubscribe<WorldUpdateEvent>(OnWorldUpdate);
         EventBus.Unsubscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
 
-        if (_debugCanvas)
-            Object.Destroy(_debugCanvas.gameObject);
+        _uiCanvas.gameObject.SetActive(false);
     }
 
     private void OnWorldUpdate(WorldUpdateEvent e)
@@ -94,9 +88,10 @@ public class DebugInfo : FeatureBase
 
         if (!level)
             return;
-        EnsureUI();
+        EnsurePlayer();
+        EnsurePrefab();
 
-        _debugCanvas.gameObject.SetActive(true);
+        _uiCanvas.gameObject.SetActive(true);
 
         var absolutePos = _playerTransform.position;
         var levelPos = Utils.Vectors.ConvertPointToLocal(absolutePos);
@@ -115,7 +110,7 @@ public class DebugInfo : FeatureBase
                 var pos = Utils.Raycast.GetLookTarget(Camera.main.transform, 100f);
                 var json = $"{{ \"x\": {pos.x:F2}, \"y\": {pos.y:F2}, \"z\": {pos.z:F2} }}";
                 GUIUtility.systemCopyBuffer = json;
-                Utils.Logger.Info($"Copied to clipboard: {json}");
+                Logger.Info($"Copied to clipboard: {json}");
             }
         }
 
@@ -140,7 +135,7 @@ public class DebugInfo : FeatureBase
         if (showWorldPos)
             _summary.Append($"absolutePos: <mark={bg}><b><color={fg}>{absolutePos}</color></b></mark> ");
 
-        _debugText.text = _summary.ToString();
+        _uiText.text = _summary.ToString();
     }
 
     private void OnPlayerLateUpdate(PlayerLateUpdateEvent e)

@@ -38,10 +38,10 @@ public class SpeedrunStats : FeatureBase
 
     private void EnsurePlayer()
     {
-        if (_playerTransform != null) return;
+        if (_playerTransform) return;
 
         var playerObj = GameObject.Find("CL_Player");
-        if (playerObj == null)
+        if (!playerObj)
         {
             Utils.Logger.Error("RoutePlayer: Player object not found");
         }
@@ -52,7 +52,7 @@ public class SpeedrunStats : FeatureBase
     private void EnsureUI()
     {
         EnsurePlayer();
-        if (_statsCanvas != null && _statsText != null)
+        if (_statsCanvas && _statsText)
             return;
 
         _statsCanvas = new GameObject($"HisTools_{Name}_Canvas").AddComponent<Canvas>();
@@ -77,7 +77,7 @@ public class SpeedrunStats : FeatureBase
     {
         EventBus.Unsubscribe<WorldUpdateEvent>(OnWorldUpdate);
 
-        if (_statsCanvas != null)
+        if (_statsCanvas)
             Object.Destroy(_statsCanvas.gameObject);
     }
 
@@ -162,7 +162,7 @@ public class SpeedrunStats : FeatureBase
         var timeNow = TimeSpan.FromSeconds(CL_GameManager.gMan.GetGameTime());
         var newLevel = e.Level;
 
-        if (_currentLevel == null)
+        if (!_currentLevel)
         {
             _currentLevel = newLevel;
             _lastLevel = newLevel;
@@ -236,7 +236,7 @@ public class SpeedrunStats : FeatureBase
 
         _history.RemoveAll();
 
-        if (WorldLoader.instance == null)
+        if (!WorldLoader.instance)
             return;
 
         var runInfo = new JObject

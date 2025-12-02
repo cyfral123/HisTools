@@ -6,19 +6,19 @@ namespace HisTools.Utils.RouteFeature;
 public class MarkerActivator : MonoBehaviour
 {
     public float bounceDuration = 0.25f;
-    public float bounceStrength = 0.25f;
+    public float bounceStrength = 0.40f;
 
-    private Renderer rend;
+    private Renderer _renderer;
 
     private void Awake()
     {
-        rend = GetComponent<Renderer>();
+        _renderer = GetComponent<Renderer>();
     }
 
     public void ActivateMarker(Color targetColor)
     {
         transform.DOPunchScale(Vector3.one * bounceStrength, bounceDuration, 1, 0.5f);
 
-        rend.material.DOColor(targetColor, bounceDuration);
+        _renderer.material.DOColor(targetColor, bounceDuration);
     }
 }

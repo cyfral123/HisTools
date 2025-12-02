@@ -7,10 +7,12 @@ using HarmonyLib;
 using HisTools.Config;
 using HisTools.Features;
 using HisTools.Features.Controllers;
+using HisTools.Prefabs;
 using HisTools.UI;
 using HisTools.UI.Controllers;
 using HisTools.Utils;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace HisTools;
 
@@ -18,6 +20,7 @@ namespace HisTools;
 public class Plugin : BaseUnityPlugin
 {
     public static string ConfigDir { get; private set; }
+    public static string PluginDllDir { get; private set; }
     public static string Name { get; private set; }
     public static string RoutesConfigPath => Path.Combine(ConfigDir, "Routes");
     public static string RoutesStateConfigFilePath => Path.Combine(ConfigDir, "routes_state.json");
@@ -43,6 +46,7 @@ public class Plugin : BaseUnityPlugin
     {
         Name = Info.Metadata.Name;
         ConfigDir = Path.Combine(Paths.BepInExRootPath, Name);
+        PluginDllDir = Path.GetDirectoryName(Info.Location);
 
         BackgroundHtml = Config.Bind("Palette", "Background", "#282828", "Background color");
         AccentHtml = Config.Bind("Palette", "Accent", "#6869c3", "Main color");
@@ -103,7 +107,10 @@ public class Plugin : BaseUnityPlugin
 
         RecoverState.FeaturesState(FeaturesStateConfigFilePath);
 
-        EventBus.Subscribe<GameStartEvent>(_ => FeaturesMenu.EnsureHisToolsMenuInitialized());
+        EventBus.Subscribe<GameStartEvent>(_ =>
+        {
+            FeaturesMenu.EnsureHisToolsMenuInitialized();
+        });
         EventBus.Subscribe<FeatureSettingsMenuToggleEvent>(e =>
             SettingsPanelController.Instance.HandleSettingsToggle(e.Feature));
     }

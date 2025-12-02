@@ -7,7 +7,7 @@ using Newtonsoft.Json.Linq;
 
 namespace HisTools.Utils.SpeedrunFeature;
 
-public class RunsHistory
+public static class RunsHistory
 {
     private class RunSegment(string from, string to, TimeSpan elapsed)
     {
@@ -32,8 +32,8 @@ public class RunsHistory
                     var from = (string)obj["from"];
                     var to = (string)obj["to"];
                     var elapsedStr = (string)obj["elapsed"];
-
-                    if (TimeSpan.TryParseExact(elapsedStr, @"hh\:mm\:ss\:ff", null, out var elapsed))
+                
+                    if (TimeSpan.TryParseExact(elapsedStr, @"mm\:ss\:ff", null, out var elapsed))
                     {
                         if (from == targetLevel)
                             levelSegments.Add(new RunSegment(from, to, elapsed));

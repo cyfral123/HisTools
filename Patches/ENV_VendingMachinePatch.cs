@@ -10,7 +10,7 @@ public static class ENV_VendingMachinePatch
     [HarmonyPatch(typeof(ENV_VendingMachine), "Buy", [typeof(int), typeof(bool), typeof(bool)])]
     public static class ENV_VendingMachine_Buy_Patch
     {
-        private static void Prefix(ref int i, ref bool force, ref bool free)
+        private static void Prefix(ref bool free)
         {
             try
             {
