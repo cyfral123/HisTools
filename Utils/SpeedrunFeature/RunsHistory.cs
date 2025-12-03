@@ -32,7 +32,7 @@ public static class RunsHistory
                     var from = (string)obj["from"];
                     var to = (string)obj["to"];
                     var elapsedStr = (string)obj["elapsed"];
-                
+
                     if (TimeSpan.TryParseExact(elapsedStr, @"mm\:ss\:ff", null, out var elapsed))
                     {
                         if (from == targetLevel)
@@ -51,12 +51,45 @@ public static class RunsHistory
         if (levelSegments.Count > 0)
         {
             var best = levelSegments.Min(s => s.Elapsed);
-            var avg = TimeSpan.FromMilliseconds(levelSegments.Average(s => s.Elapsed.TotalMilliseconds));
-            onFinished?.Invoke(best, avg);
+            var ms = levelSegments
+                .Select(s => s.Elapsed.TotalMilliseconds)
+                .OrderBy(x => x)
+                .ToList();
+
+            double median;
+
+            var count = ms.Count;
+            if (count == 0)
+            {
+                median = 0;
+            }
+            else if (count % 2 == 1)
+            {
+                median = ms[count / 2];
+            }
+            else
+            {
+                median = (ms[count / 2 - 1] + ms[count / 2]) / 2.0;
+            }
+
+            var medianTime = TimeSpan.FromMilliseconds(median);
+
+            onFinished?.Invoke(best, medianTime);
         }
         else
         {
             onFinished?.Invoke(TimeSpan.Zero, TimeSpan.Zero);
         }
+    }
+
+
+    public static double Median(List<double> xs)
+    {
+        if (xs == null || xs.Count == 0) throw new ArgumentException();
+        xs.Sort();
+        var n = xs.Count;
+        if (n % 2 == 1) return xs[n / 2];
+
+        return (xs[n / 2 - 1] + xs[n / 2]) / 2.0;
     }
 }
