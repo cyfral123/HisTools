@@ -45,7 +45,7 @@ public abstract class FeatureBase : IFeature
     {
     }
 
-    protected virtual void OnSettingChanged(string _, IFeatureSetting __)
+    protected virtual void OnSettingChanged(string featureName, IFeatureSetting setting)
     {
     }
 
