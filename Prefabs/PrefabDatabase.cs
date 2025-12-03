@@ -27,7 +27,7 @@ namespace HisTools.Prefabs
                 prefab.SetActive(active);
                 return Option<GameObject>.Some(prefab);
             }
-            
+
             Utils.Logger.Error($"PrefabDatabase: Prefab {prefabName} not found");
             return result;
         }
@@ -40,7 +40,13 @@ namespace HisTools.Prefabs
             var bundlePath = Path.Combine(Constants.Paths.PluginDllDir, "Assets", bundleName);
 
             if (!File.Exists(bundlePath))
-                return Option<AssetBundle>.None();
+            {
+                var fallbackPath = Path.Combine(Constants.Paths.PluginDllDir, bundleName);
+                if (!File.Exists(fallbackPath))
+                    return Option<AssetBundle>.None();
+                
+                bundlePath = fallbackPath;
+            }
 
             bundle = AssetBundle.LoadFromFile(bundlePath);
 
