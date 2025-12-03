@@ -1,5 +1,5 @@
 
-<img src="./icon.png" alt="Icon" width="100" height="100"/>
+<img src="https://github.com/cyfral123/HisTools/blob/master/showcase.png?raw=true" alt="Showcase"/>
 
 # How to use
 The default key to open the features menu is `Right Shift`. You can change it in the config, look for it in your mod manager. (You can also change the color palette there)
