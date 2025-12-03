@@ -1,4 +1,5 @@
 using DG.Tweening;
+using Unity.Burst.CompilerServices;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -37,7 +38,7 @@ namespace HisTools.UI.Controllers
 
             isExpanded = !isExpanded;
 
-            float targetAlpha = isExpanded ? Plugin.MaxBackgroundAlpha : 0f;
+            float targetAlpha = isExpanded ? Constants.Animation.MaxBackgroundAlpha : 0f;
             float targetHeight = isExpanded ? GetExpandedHeight() : HEADER_HEIGHT;
 
             if (!isExpanded)
@@ -49,12 +50,12 @@ namespace HisTools.UI.Controllers
 
             Sequence seq = DOTween.Sequence();
 
-            seq.Join(buttonsCanvasGroup.DOFade(targetAlpha, Plugin.AnimationDuration)
+            seq.Join(buttonsCanvasGroup.DOFade(targetAlpha, Constants.Animation.Duration)
                 .SetEase(Ease.OutBack));
 
             seq.Join(categoryRect.DOSizeDelta(
                 new Vector2(categoryRect.sizeDelta.x, targetHeight),
-                Plugin.AnimationDuration
+                Constants.Animation.Duration
             ).SetEase(Ease.OutBack));
 
             seq.OnComplete(() =>

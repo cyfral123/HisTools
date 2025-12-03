@@ -53,14 +53,11 @@ public class RouteRecorder : FeatureBase
 
     public override void OnEnable()
     {
-        var playerObj = GameObject.Find("CL_Player");
-        if (!playerObj)
+        if (Player.GetTransform().TryGet(out var value))
         {
-            Utils.Logger.Error("RecordPath: Player object not found");
-            return;
+            _player = value;
         }
-
-
+        
         if (!_markerPrefab)
         {
             if (PrefabDatabase.Instance.GetPrefab("histools/SphereMarker", false)
@@ -72,8 +69,6 @@ public class RouteRecorder : FeatureBase
                 _markerPrefab = go;
             }
         }
-
-        _player = playerObj.transform;
 
         _points.Clear();
         _jumpMarkers.Clear();
@@ -107,7 +102,7 @@ public class RouteRecorder : FeatureBase
     {
         if (_points.Count > 5)
         {
-            var folderPath = Path.Combine(Plugin.ConfigDir, "Routes");
+            var folderPath = Path.Combine(Constants.Paths.ConfigDir, "Routes");
             if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);
 

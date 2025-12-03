@@ -8,7 +8,7 @@ public static class Raycast
     {
         var ray = new Ray(origin.position, origin.forward);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, maxDistance))
+        if (Physics.Raycast(ray, out var hit, maxDistance))
         {
             return hit.point + origin.forward * offset;
         }

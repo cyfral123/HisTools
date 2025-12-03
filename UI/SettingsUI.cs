@@ -72,11 +72,11 @@ public static class SettingsUI
         hLayout.childForceExpandWidth = false;
         hLayout.childForceExpandHeight = true;
 
-        int count = 0;
+        var count = 0;
         RectTransform currentColumn = null;
 
-        float duration = 0.4f;
-        float delayPerItem = 0.025f;
+        const float duration = 0.4f;
+        const float delayPerItem = 0.025f;
 
         foreach (var setting in feature.Settings)
         {
@@ -110,7 +110,7 @@ public static class SettingsUI
                     break;
             }
 
-            if (go != null)
+            if (go)
             {
                 go.transform.localScale = Vector3.zero;
                 go.transform.DOScale(Vector3.one, duration)
@@ -182,11 +182,11 @@ public static class SettingsUI
 
         toggle.onValueChanged.AddListener(isOn =>
         {
-            float targetX = isOn ? 37.5f : 12.5f;
+            var targetX = isOn ? 37.5f : 12.5f;
             knobRect.DOAnchorPosX(targetX, 0.15f).SetEase(Ease.OutQuad);
 
-            Color targetTrackColor = isOn ? Utils.Palette.HtmlColorDark(Plugin.EnabledHtml.Value) : Utils.Palette.FromHtml(Plugin.BackgroundHtml.Value);
-            Color targetKnobColor = isOn ? Utils.Palette.FromHtml(Plugin.EnabledHtml.Value) : new Color(0.3f, 0.3f, 0.3f, 1f);
+            var targetTrackColor = isOn ? Utils.Palette.HtmlColorDark(Plugin.EnabledHtml.Value) : Utils.Palette.FromHtml(Plugin.BackgroundHtml.Value);
+            var targetKnobColor = isOn ? Utils.Palette.FromHtml(Plugin.EnabledHtml.Value) : new Color(0.3f, 0.3f, 0.3f, 1f);
             trackImg.DOColor(targetTrackColor, 0.15f);
             knobImg.DOColor(targetKnobColor, 0.15f);
 

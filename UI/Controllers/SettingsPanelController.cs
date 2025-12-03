@@ -1,5 +1,6 @@
 using DG.Tweening;
 using HisTools.Features.Controllers;
+using HisTools.Utils;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,7 +9,7 @@ namespace HisTools.UI.Controllers;
 
 public class SettingsPanelController : MonoBehaviour
 {
-    public static SettingsPanelController Instance { get; private set; }
+    public static Option<SettingsPanelController> Instance { get; private set; }
     private static IFeature _lastFeature;
 
     private static RectTransform _panelRect;
@@ -19,12 +20,16 @@ public class SettingsPanelController : MonoBehaviour
 
     public void Awake()
     {
-        if (Instance && Instance != this)
+        if (Instance.TryGet(out var value))
         {
-            Destroy(gameObject);
-            return;
+            if (value != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
         }
-        Instance = this;
+
+        Instance = Option<SettingsPanelController>.Some(this);
 
         var parentCanvas = FeaturesMenu.Canvas;
         if (!parentCanvas)
@@ -69,7 +74,8 @@ public class SettingsPanelController : MonoBehaviour
 
     public void HandleSettingsToggle(IFeature currentFeature, bool force = false)
     {
-        Utils.Logger.Debug($"HandleSettingsToggle: called for '{currentFeature.Name}' ({currentFeature.Settings.Count} settings)");
+        Utils.Logger.Debug(
+            $"HandleSettingsToggle: called for '{currentFeature.Name}' ({currentFeature.Settings.Count} settings)");
 
         if (_lastFeature == currentFeature && !force)
         {
@@ -96,4 +102,11 @@ public class SettingsPanelController : MonoBehaviour
         _panelRect.gameObject.SetActive(false);
     }
 
+    private void OnDestroy()
+    {
+        if (Instance.TryGet(out var value) && value == this)
+        {
+            Instance = Option<SettingsPanelController>.None();
+        }
+    }
 }

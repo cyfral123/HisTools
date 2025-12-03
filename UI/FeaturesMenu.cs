@@ -224,7 +224,7 @@ public class FeaturesMenu : MonoBehaviour
 
         try
         {
-            RecoverState.FeaturesState(Plugin.FeaturesStateConfigFilePath);
+            RecoverState.FeaturesState(Constants.Paths.FeaturesStateConfigFilePath);
         }
         catch (System.Exception ex)
         {

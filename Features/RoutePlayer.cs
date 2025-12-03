@@ -82,13 +82,11 @@ public class RoutePlayer : FeatureBase
     private void EnsurePlayer()
     {
         if (_playerTransform) return;
-        var playerObj = GameObject.Find("CL_Player");
-        if (!playerObj)
-        {
-            Utils.Logger.Error("RoutePlayer: Player object not found");
-        }
 
-        _playerTransform = playerObj.transform;
+        if (Player.GetTransform().TryGet(out var value))
+        {
+            _playerTransform = value;
+        }
     }
 
     private void CreatePrefabsIfNeeded()

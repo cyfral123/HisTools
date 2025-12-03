@@ -6,19 +6,15 @@ public static class Vectors
 {
     public static Vector3 ConvertPointToAbsolute(Vector3 localPoint)
     {
-        var levelTransform = CL_EventManager.currentLevel?.transform;
-        if (levelTransform != null)
-            return levelTransform.TransformPoint(localPoint);
-        else
-            return localPoint;
+        return Level.GetCurrentTransform().TryGet(out var levelTransform)
+            ? levelTransform.TransformPoint(localPoint)
+            : localPoint;
     }
 
     public static Vector3 ConvertPointToLocal(Vector3 worldPoint)
     {
-        var levelTransform = CL_EventManager.currentLevel?.transform;
-        if (levelTransform != null)
-            return levelTransform.InverseTransformPoint(worldPoint);
-        else
-            return worldPoint;
+        return Level.GetCurrentTransform().TryGet(out var levelTransform)
+            ? levelTransform.InverseTransformPoint(worldPoint)
+            : worldPoint;
     }
 }

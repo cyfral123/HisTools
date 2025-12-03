@@ -11,20 +11,10 @@ public static class CL_AssetManagerPatch
     {
         private static void Postfix()
         {
-            if (PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "Feature_DebugInfo").IsNone)
-            {
-                Utils.Logger.Error("Cant load asset for debugInfo");
-            }
-
-            if (PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "SphereMarker").IsNone)
-            {
-                Utils.Logger.Error("Cant load asset for sphereMarker");
-            }
-            
-            if (PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "InfoLabel").IsNone)
-            {
-                Utils.Logger.Error("Cant load asset for InfoLabel");
-            }
+            PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "Feature_DebugInfo");
+            PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "SphereMarker");
+            PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "InfoLabel");
+            PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_Speedrun");
         }
     }
 }

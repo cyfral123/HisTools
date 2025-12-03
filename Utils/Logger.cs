@@ -4,15 +4,15 @@ namespace HisTools.Utils;
 
 public static class Logger
 {
-    private static readonly ManualLogSource s_log;
+    private static readonly ManualLogSource PluginSource;
 
-    public static void Info(string msg) => s_log.Log(LogLevel.Info, msg);
-    public static void Debug(string msg) => s_log.Log(LogLevel.Debug, msg);
-    public static void Warn(string msg) => s_log.Log(LogLevel.Warning, msg);
-    public static void Error(string msg) => s_log.Log(LogLevel.Error, msg);
+    public static void Info(string msg) => PluginSource.Log(LogLevel.Info, msg);
+    public static void Debug(string msg) => PluginSource.Log(LogLevel.Debug, msg);
+    public static void Warn(string msg) => PluginSource.Log(LogLevel.Warning, msg);
+    public static void Error(string msg) => PluginSource.Log(LogLevel.Error, msg);
 
     static Logger()
     {
-        s_log = BepInEx.Logging.Logger.CreateLogSource(Plugin.Name);
+        PluginSource = BepInEx.Logging.Logger.CreateLogSource(Constants.PluginName);
     }
 }

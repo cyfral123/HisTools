@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace HisTools.Utils;
 
@@ -17,12 +17,15 @@ public readonly struct Option<T>
     public static Option<T> Some(T value) => new(value);
     public static Option<T> None() => new();
 
+    public static Option<T> FromNullable(T value) =>
+        value != null ? Some(value) : None();
+
     public T Unwrap() =>
-        IsSome ? _value : throw new InvalidOperationException("Option is None");
+        IsSome ? _value : throw new InvalidOperationException("Called Unwrap on None option");
 
     public T UnwrapOr(T fallback) =>
         IsSome ? _value : fallback;
-
+    
     public bool TryGet(out T value)
     {
         if (IsSome)

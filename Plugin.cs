@@ -16,157 +16,250 @@ using Object = UnityEngine.Object;
 
 namespace HisTools;
 
-[BepInPlugin("com.cyfral.HisTools", "HisTools", "0.1.0")]
+
+[BepInPlugin(Constants.PluginGuid, Constants.PluginName, Constants.PluginVersion)]
 public class Plugin : BaseUnityPlugin
 {
-    public static string ConfigDir { get; private set; }
-    public static string PluginDllDir { get; private set; }
-    public static string Name { get; private set; }
-    public static string RoutesConfigPath => Path.Combine(ConfigDir, "Routes");
-    public static string RoutesStateConfigFilePath => Path.Combine(ConfigDir, "routes_state.json");
-    public static string SettingsConfigPath => Path.Combine(ConfigDir, "Settings");
-    public static string FeaturesStateConfigFilePath => Path.Combine(ConfigDir, "features_state.json");
-    public static string SpeedrunStatsDir => Path.Combine(ConfigDir, "SpeedrunStats");
+    public static Plugin Instance;
+    private static readonly FeatureFactory FeatureFactory = new();
+    private Harmony _harmony;
 
-    private static readonly FeatureFactory s_featureFactory = new();
-
-    public const float AnimationDuration = 0.15f;
-    public const float MaxBackgroundAlpha = 0.90f;
-
-    public static ConfigEntry<string> BackgroundHtml;
-    public static ConfigEntry<string> AccentHtml;
-    public static ConfigEntry<string> EnabledHtml;
-    public static ConfigEntry<string> RouteLabelDisabledColorHtml;
-    public static ConfigEntry<int> RouteLabelDisabledOpacityHtml;
-    public static ConfigEntry<string> RouteLabelEnabledColorHtml;
-    public static ConfigEntry<int> RouteLabelEnabledOpacityHtml;
-    public static ConfigEntry<KeyCode> FeaturesMenuToggleKey;
+    // Configuration entries
+    public static ConfigEntry<string> BackgroundHtml { get; private set; }
+    public static ConfigEntry<string> AccentHtml { get; private set; }
+    public static ConfigEntry<string> EnabledHtml { get; private set; }
+    public static ConfigEntry<string> RouteLabelDisabledColorHtml { get; private set; }
+    public static ConfigEntry<int> RouteLabelDisabledOpacityHtml { get; private set; }
+    public static ConfigEntry<string> RouteLabelEnabledColorHtml { get; private set; }
+    public static ConfigEntry<int> RouteLabelEnabledOpacityHtml { get; private set; }
+    public static ConfigEntry<KeyCode> FeaturesMenuToggleKey { get; private set; }
 
     private void Awake()
     {
-        Name = Info.Metadata.Name;
-        ConfigDir = Path.Combine(Paths.BepInExRootPath, Name);
-        PluginDllDir = Path.GetDirectoryName(Info.Location);
+        Instance = this;
+        try
+        {
+            InitializeConfiguration();
+            InitializeHarmony();
+            CreateRequiredDirectories();
+            ExtractBuiltinStuff();
+            InitializeUI();
+            InitializeFeatures();
+            SubscribeToEvents();
+            LoadSavedState();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to initialize {Constants.PluginName}: {ex}");
+            throw;
+        }
+    }
 
+    private void InitializeConfiguration()
+    {
+        // Palette settings
         BackgroundHtml = Config.Bind("Palette", "Background", "#282828", "Background color");
         AccentHtml = Config.Bind("Palette", "Accent", "#6869c3", "Main color");
         EnabledHtml = Config.Bind("Palette", "Enabled", "#9e97d3", "Color for activated elements");
 
+        // Route label settings
         RouteLabelDisabledColorHtml = Config.Bind("Palette", "RouteLabelDisabledColor", "#320e0e",
-            "Color for enabled route label text");
+            "Color for disabled route label text");
+
         RouteLabelDisabledOpacityHtml = Config.Bind("Palette", "RouteLabelDisabledOpacity", 50,
-            new ConfigDescription("Color for Enabled route label text",
-                new AcceptableValueRange<int>(0, 100)
-            ));
+            new ConfigDescription("Opacity for disabled route label text",
+                new AcceptableValueRange<int>(0, 100)));
 
         RouteLabelEnabledColorHtml = Config.Bind("Palette", "RouteLabelEnabledColor", "#bbff28",
-            "Color for disabled route label text");
+            "Color for enabled route label text");
+
         RouteLabelEnabledOpacityHtml = Config.Bind("Palette", "RouteLabelEnabledOpacity", 100,
-            new ConfigDescription("Color for Disabled route label text",
-                new AcceptableValueRange<int>(0, 100)
-            ));
+            new ConfigDescription("Opacity for enabled route label text",
+                new AcceptableValueRange<int>(0, 100)));
 
-        FeaturesMenuToggleKey =
-            Config.Bind("General", "FeaturesMenuToggleKey", KeyCode.RightShift, "Toggle features menu");
+        // General settings
+        FeaturesMenuToggleKey = Config.Bind("General", "FeaturesMenuToggleKey",
+            KeyCode.RightShift, "Key to toggle the features menu");
+    }
 
-        var harmony = new Harmony(Info.Metadata.GUID);
-        harmony.PatchAll();
+    private void InitializeHarmony()
+    {
+        _harmony = new Harmony(Info.Metadata.GUID);
+        _harmony.PatchAll();
+    }
 
-        Directory.CreateDirectory(ConfigDir);
-        Directory.CreateDirectory(RoutesConfigPath);
-        Directory.CreateDirectory(SettingsConfigPath);
-        Directory.CreateDirectory(SpeedrunStatsDir);
-        ExtractBuiltinStuff();
+    private void CreateRequiredDirectories()
+    {
+        Directory.CreateDirectory(Constants.Paths.ConfigDir);
+        Directory.CreateDirectory(Constants.Paths.RoutesConfigPath);
+        Directory.CreateDirectory(Constants.Paths.SettingsConfigPath);
+        Directory.CreateDirectory(Constants.Paths.SpeedrunStatsDir);
+    }
 
-        var HisToolsMenu = new GameObject("HisTools_FeaturesMenu");
-        DontDestroyOnLoad(HisToolsMenu);
-        HisToolsMenu.AddComponent<FeaturesMenu>();
+    private void InitializeUI()
+    {
+        var featuresMenuObject = new GameObject(Constants.UI.MenuObjectName);
+        DontDestroyOnLoad(featuresMenuObject);
+        featuresMenuObject.AddComponent<FeaturesMenu>();
+    }
 
-        var miscCPos = new Vector2(-250, 0);
-        var visualCPos = new Vector2(0, 0);
-        var pathCPos = new Vector2(250, 0);
+    private void InitializeFeatures()
+    {
+        var miscCategoryPos = new Vector2(-250, 0);
+        var visualCategoryPos = new Vector2(0, 0);
+        var pathCategoryPos = new Vector2(250, 0);
 
-        InitFeature(visualCPos, "Visual", new DebugInfo());
-        InitFeature(visualCPos, "Visual", new CustomFog());
-        InitFeature(visualCPos, "Visual", new CustomHandhold());
-        InitFeature(visualCPos, "Visual", new ShowItemInfo());
-        InitFeature(pathCPos, "Path", new RoutePlayer());
-        InitFeature(pathCPos, "Path", new RouteRecorder());
-        InitFeature(miscCPos, "Misc", new FreeBuying());
-        InitFeature(miscCPos, "Misc", new SpeedrunStats());
+        // Visual features
+        RegisterFeature(visualCategoryPos, "Visual", new DebugInfo());
+        RegisterFeature(visualCategoryPos, "Visual", new CustomFog());
+        RegisterFeature(visualCategoryPos, "Visual", new CustomHandhold());
+        RegisterFeature(visualCategoryPos, "Visual", new ShowItemInfo());
 
+        // Path features
+        RegisterFeature(pathCategoryPos, "Path", new RoutePlayer());
+        RegisterFeature(pathCategoryPos, "Path", new RouteRecorder());
 
+        // Misc features
+        RegisterFeature(miscCategoryPos, "Misc", new FreeBuying());
+        RegisterFeature(miscCategoryPos, "Misc", new SpeedrunStats());
+    }
+
+    private void SubscribeToEvents()
+    {
         EventBus.Subscribe<FeatureSettingChangedEvent>(e =>
         {
-            Debounce.Run(CoroutineRunner.Instance,
+            Debounce.Run(
+                CoroutineRunner.Instance,
                 e.Setting.Name,
                 2.5f,
                 () => Files.SaveSettingToConfig(e.Feature.Name, e.Setting.Name, e.Setting.GetValue())
             );
         });
 
-        RecoverState.FeaturesState(FeaturesStateConfigFilePath);
+        EventBus.Subscribe<GameStartEvent>(_ => FeaturesMenu.EnsureHisToolsMenuInitialized());
 
-        EventBus.Subscribe<GameStartEvent>(_ =>
-        {
-            FeaturesMenu.EnsureHisToolsMenuInitialized();
-        });
         EventBus.Subscribe<FeatureSettingsMenuToggleEvent>(e =>
-            SettingsPanelController.Instance.HandleSettingsToggle(e.Feature));
+        {
+            if (SettingsPanelController.Instance.TryGet(out var value))
+                value.HandleSettingsToggle(e.Feature);
+        });
     }
 
-    private static void InitFeature(Vector2 categoryPosition, string categoryName, IFeature feature)
+    private void LoadSavedState()
     {
-        s_featureFactory.Register(feature.Name, () => feature);
-        s_featureFactory.Create(feature.Name);
-        FeaturesMenu.AssignFeatureToCategory(feature, categoryName, categoryPosition);
+        try
+        {
+            RecoverState.FeaturesState(Constants.Paths.FeaturesStateConfigFilePath);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to load saved state: {ex}");
+        }
+    }
+
+    private void RegisterFeature(Vector2 categoryPosition, string categoryName, IFeature feature)
+    {
+        if (feature == null)
+        {
+            Logger.LogWarning("Attempted to register a null feature");
+            return;
+        }
+
+        try
+        {
+            FeatureFactory.Register(feature.Name, () => feature);
+            FeatureFactory.Create(feature.Name);
+            FeaturesMenu.AssignFeatureToCategory(feature, categoryName, categoryPosition);
+            Utils.Logger.Debug($"Registered feature: {feature.Name} in category: {categoryName}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Failed to register feature {feature.Name}: {ex}");
+        }
     }
 
     private void ExtractBuiltinStuff()
     {
-        var builtinsDir = Path.GetDirectoryName(Info.Location);
-        ExtractBuiltinZips(builtinsDir, ConfigDir);
+        try
+        {
+            var builtinsDir = Path.GetDirectoryName(Info.Location);
+            if (string.IsNullOrEmpty(builtinsDir))
+            {
+                Utils.Logger.Warn("Could not determine plugin directory for builtin assets");
+                return;
+            }
+
+            ExtractBuiltinZips(builtinsDir, Constants.Paths.ConfigDir);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error during builtin assets extraction: {ex}");
+        }
     }
 
     private static void ExtractBuiltinZips(string sourceDir, string targetDir)
     {
-        if (!Directory.Exists(sourceDir))
+        if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
         {
-            Utils.Logger.Debug($"ExtractBuiltinZips: Source folder does not exist: {sourceDir}");
+            Utils.Logger.Warn($"Source directory does not exist or is inaccessible: {sourceDir}");
             return;
         }
 
-        if (!Directory.Exists(targetDir))
-            Directory.CreateDirectory(targetDir);
-
-        var zipFiles = Directory.GetFiles(sourceDir, "*.zip");
-
-        if (zipFiles.Length > 0)
+        if (Files.EnsureDirectory(targetDir).IsNone)
         {
-            Utils.Logger.Info($"Extracting builtin zips from '{sourceDir}' to '{targetDir}'...");
+            Utils.Logger.Error($"targetDir '{targetDir}' is not a directory path");
+            return;
         }
 
-        foreach (var zip in zipFiles)
+        if (Files.GetFiles(sourceDir, "*.zip").TryGet(out var zipFiles))
         {
-            Utils.Logger.Info($"Extracting '{zip}'...");
-            var folderName = Path.GetFileNameWithoutExtension(zip);
-            var destPath = Path.Combine(targetDir, folderName);
-
-
-            try
+            if (zipFiles.Length == 0)
             {
-                ZipFile.ExtractToDirectory(zip, destPath);
-            }
-            catch (Exception ex)
-            {
-                Utils.Logger.Error($"Failed to extract '{zip}': {ex.Message}");
-                continue;
+                Utils.Logger.Debug("No builtin zip files found to extract");
+                return;
             }
 
-            if (File.Exists(zip))
-                File.Delete(zip);
+            Utils.Logger.Info($"Found {zipFiles.Length} builtin zip files to extract");
 
-            Utils.Logger.Info($"Extracted to '{destPath}'");
+            foreach (var zip in zipFiles)
+            {
+                ExtractZipFile(zip, targetDir);
+            }
+        }
+        else
+        {
+            Utils.Logger.Error($"No builtin zip files found in '{sourceDir}'");
+        }
+    }
+
+    private static void ExtractZipFile(string zipPath, string targetDir)
+    {
+        var folderName = Path.GetFileNameWithoutExtension(zipPath);
+        var destPath = Path.Combine(targetDir, folderName);
+
+        try
+        {
+            Utils.Logger.Info($"Extracting '{Path.GetFileName(zipPath)}' to '{destPath}'...");
+
+            Directory.CreateDirectory(destPath);
+
+            ZipFile.ExtractToDirectory(zipPath, destPath, true);
+
+            File.Delete(zipPath);
+
+            Utils.Logger.Info($"Successfully extracted to '{destPath}'");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Utils.Logger.Error($"Access denied when processing '{zipPath}': {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Utils.Logger.Error($"I/O error processing '{zipPath}': {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Utils.Logger.Error($"Failed to extract '{zipPath}': {ex}");
         }
     }
 }

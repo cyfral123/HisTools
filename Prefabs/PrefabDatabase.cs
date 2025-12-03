@@ -37,7 +37,7 @@ namespace HisTools.Prefabs
             if (_loadedBundles.TryGetValue(bundleName, out var bundle))
                 return Option<AssetBundle>.Some(bundle);
 
-            var bundlePath = Path.Combine(Plugin.PluginDllDir, "Assets", bundleName);
+            var bundlePath = Path.Combine(Constants.Paths.PluginDllDir, "Assets", bundleName);
 
             if (!File.Exists(bundlePath))
                 return Option<AssetBundle>.None();

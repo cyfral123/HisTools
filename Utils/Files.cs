@@ -23,7 +23,7 @@ public static class Files
             yield break;
         }
 
-        var routesDir = Path.Combine(Plugin.RoutesConfigPath);
+        var routesDir = Path.Combine(Constants.Paths.RoutesConfigPath);
         if (!Directory.Exists(routesDir))
         {
             Logger.Debug($"Routes directory not found: {routesDir}");
@@ -55,6 +55,7 @@ public static class Files
                 {
                     Logger.Warn($"Failed to process JSON '{file}': {ex.Message}");
                 }
+
                 yield return new WaitForEndOfFrame();
             }
         }
@@ -67,7 +68,7 @@ public static class Files
     {
         try
         {
-            var filePath = Plugin.RoutesStateConfigFilePath;
+            var filePath = Constants.Paths.RoutesStateConfigFilePath;
 
             var json = LoadOrRepairJson(filePath);
 
@@ -85,7 +86,7 @@ public static class Files
     {
         try
         {
-            var filePath = Plugin.RoutesStateConfigFilePath;
+            var filePath = Constants.Paths.RoutesStateConfigFilePath;
 
             var json = LoadOrRepairJson(filePath);
 
@@ -93,7 +94,6 @@ public static class Files
             {
                 return json[routeUid].ToObject<bool>();
             }
-
         }
         catch (Exception ex)
         {
@@ -107,7 +107,7 @@ public static class Files
     {
         try
         {
-            var filePath = Path.Combine(Plugin.SettingsConfigPath, $"{featureName}.json");
+            var filePath = Path.Combine(Constants.Paths.SettingsConfigPath, $"{featureName}.json");
 
             var json = LoadOrRepairJson(filePath);
 
@@ -129,7 +129,7 @@ public static class Files
     {
         try
         {
-            var filePath = Path.Combine(Plugin.SettingsConfigPath, $"{featureName}.json");
+            var filePath = Path.Combine(Constants.Paths.SettingsConfigPath, $"{featureName}.json");
 
             var json = LoadOrRepairJson(filePath);
 
@@ -142,6 +142,7 @@ public static class Files
         {
             Logger.Error($"Failed to load setting '{settingName}': {ex.Message}");
         }
+
         SaveSettingToConfig(featureName, settingName, defaultValue);
         return defaultValue;
     }
@@ -150,7 +151,7 @@ public static class Files
     {
         try
         {
-            var filePath = Plugin.FeaturesStateConfigFilePath;
+            var filePath = Constants.Paths.FeaturesStateConfigFilePath;
 
             var json = LoadOrRepairJson(filePath);
 
@@ -271,4 +272,35 @@ public static class Files
         }
     }
 
+    public static Option<DirectoryInfo> EnsureDirectory(string path)
+    {
+        if (Directory.Exists(path))
+            return Option<DirectoryInfo>.Some(new DirectoryInfo(path));
+
+        try
+        {
+            var dirInfo = Directory.CreateDirectory(path);
+            return Option<DirectoryInfo>.Some(dirInfo);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to create directory '{path}': {ex.Message}");
+            return Option<DirectoryInfo>.None();
+        }
+    }
+
+    public static Option<string[]> GetFiles(string path, string searchPattern = null)
+    {
+        try
+        {
+            var files = searchPattern == null ? Directory.GetFiles(path) : Directory.GetFiles(path, searchPattern);
+
+            return Option<string[]>.Some(files);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to get files from path '{path}': {ex.Message}");
+            return Option<string[]>.None();
+        }
+    }
 }
