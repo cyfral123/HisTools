@@ -28,8 +28,7 @@ internal struct LevelState
 public class SpeedrunStats : FeatureBase
 {
     private Canvas _statsCanvas;
-    private readonly FloatSliderSetting _levelsPosition;
-    private readonly BoolSetting _showOnlyInPause;
+
     private TextMeshProUGUI _prevText;
     private TextMeshProUGUI _currText;
 
@@ -40,6 +39,10 @@ public class SpeedrunStats : FeatureBase
 
     private readonly JArray _history = [];
 
+    private readonly FloatSliderSetting _levelsPosition;
+    private readonly BoolSetting _showOnlyInPause;
+    private readonly BoolSetting _predictElapsedTime;
+
     private static string Format(TimeSpan t) => t.ToString(@"mm\:ss\:ff");
 
     public SpeedrunStats() : base("SpeedrunStats", "Various info about level completion speed")
@@ -49,6 +52,7 @@ public class SpeedrunStats : FeatureBase
         EventBus.Subscribe<LevelChangedEvent>(OnLevelChanged);
 
         _showOnlyInPause = AddSetting(new BoolSetting(this, "ShowOnlyInPause", "...", false));
+        _predictElapsedTime = AddSetting(new BoolSetting(this, "PredictElapsedTime", "...", true));
         _levelsPosition = AddSetting(new FloatSliderSetting(this, "Position", "...", 3f, 1f, 6f, 1f, 0));
     }
 
@@ -125,13 +129,24 @@ public class SpeedrunStats : FeatureBase
         var currNowColor = CalculateColor(currentElapsed, _currLevel.AvgTime);
 
         _prevText.text =
-            $"<color=grey>Previous: {_prevLevel.DisplayName} - " +
+            $"<color=grey>{_prevLevel.DisplayName} - " +
             $"<mark={bg}><b><color={prevNowColor}>{Format(_prevLevel.ElapsedTime)}</color></b></mark> " +
             $"<color=#808080>(Avg: <b>{Format(_prevLevel.AvgTime)}</b> | Best: <b>{Format(_prevLevel.BestTime)}</b>)</color>";
 
+        var levelHeight = _currLevel.Instance.GetLength();
+        var traveledHeight = Vectors.ConvertPointToLocal(_playerTransform.position).y;
+        var currentSpeed = traveledHeight / currentElapsed.TotalSeconds;
+
+        var remainingHeight = levelHeight - traveledHeight;
+        var remainingTime = remainingHeight / currentSpeed;
+
+        var predicted = TimeSpan.FromSeconds(remainingTime + currentElapsed.TotalSeconds);
+
+        var calculatedElapsedTime = _predictElapsedTime.Value ? predicted : currentElapsed;
+
         _currText.text =
-            $"<color=grey>Current: {_currLevel.DisplayName} - " +
-            $"<mark={bg}><b><color={currNowColor}>{Format(currentElapsed)}</color></b></mark> " +
+            $"<color=grey>{_currLevel.DisplayName} - " +
+            $"<mark={bg}><b><color={currNowColor}>{Format(calculatedElapsedTime)}</color></b></mark> " +
             $"<color=#808080>(Avg: <b>{Format(_currLevel.AvgTime)}</b> | Best: <b>{Format(_currLevel.BestTime)}</b>)</color>" +
             $"</color>";
     }
@@ -142,7 +157,7 @@ public class SpeedrunStats : FeatureBase
         const string cheated = "#ffffff";
         var attention = Plugin.EnabledHtml.Value;
 
-        if (CommandConsole.hasCheated)
+        if (Cheats.Detected)
             return cheated;
 
         // If the player is within 20% of the average time, highlight the current time
@@ -236,7 +251,7 @@ public class SpeedrunStats : FeatureBase
 
     private void OnLevelChanged(LevelChangedEvent e)
     {
-        if (CommandConsole.hasCheated)
+        if (Cheats.Detected)
         {
             Utils.Logger.Debug("SpeedrunStats: Level changed while cheating, ignoring");
             return;
