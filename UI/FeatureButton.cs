@@ -45,7 +45,6 @@ public class FeatureButton : MonoBehaviour
 
     private void UpdateState(bool isOn)
     {
-        Utils.Logger.Debug($"FeatureButton: {Feature.Name} -> {isOn}");
         TextLabel.color = isOn ? EnabledColor : DisabledColor;
         _toggle.isOn = isOn;
         EventBus.Publish(new FeatureToggleEvent(Feature, isOn));

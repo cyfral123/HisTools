@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using HisTools.Config;
 using HisTools.Features.Controllers;
 using HisTools.UI.Controllers;
 using HisTools.Utils;
@@ -220,16 +219,7 @@ public class FeaturesMenu : MonoBehaviour
         }
 
         var buttonFactory = new UIButtonFactory();
-        buttonFactory.CreateAllButtons(FeatureRegistry.GetAll());
-
-        try
-        {
-            RecoverState.FeaturesState(Constants.Paths.FeaturesStateConfigFilePath);
-        }
-        catch (System.Exception ex)
-        {
-            Utils.Logger.Error($"FeaturesMenu: Failed to recover feature state after rebuild: {ex.Message}");
-        }
+        UIButtonFactory.CreateAllButtons(FeatureRegistry.GetAll());
     }
 
     public static MyCategory GetOrCreateCategory(string categoryName, Vector2 initialPosition)

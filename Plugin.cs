@@ -4,15 +4,12 @@ using System.IO.Compression;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
-using HisTools.Config;
 using HisTools.Features;
 using HisTools.Features.Controllers;
-using HisTools.Prefabs;
 using HisTools.UI;
 using HisTools.UI.Controllers;
 using HisTools.Utils;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace HisTools;
 
@@ -46,7 +43,6 @@ public class Plugin : BaseUnityPlugin
             InitializeUI();
             InitializeFeatures();
             SubscribeToEvents();
-            LoadSavedState();
         }
         catch (Exception ex)
         {
@@ -143,18 +139,6 @@ public class Plugin : BaseUnityPlugin
             if (SettingsPanelController.Instance.TryGet(out var value))
                 value.HandleSettingsToggle(e.Feature);
         });
-    }
-
-    private void LoadSavedState()
-    {
-        try
-        {
-            RecoverState.FeaturesState(Constants.Paths.FeaturesStateConfigFilePath);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Failed to load saved state: {ex}");
-        }
     }
 
     private void RegisterFeature(Vector2 categoryPosition, string categoryName, IFeature feature)

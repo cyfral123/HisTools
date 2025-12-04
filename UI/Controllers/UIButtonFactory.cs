@@ -1,20 +1,22 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using HisTools.Features.Controllers;
 using HisTools.Utils;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace HisTools.UI.Controllers;
 
 public class UIButtonFactory
 {
-    public FeatureButton CreateButton(IFeature feature)
+    public static void CreateButton(IFeature feature)
     {
         if (feature.Category == null || feature.Category.LayoutTransform == null)
             throw new Exception($"Feature '{feature.Name}' does not have a category assigned");
 
-        bool hasSettings = feature.Settings.Count > 0;
+        var hasSettings = feature.Settings.Count > 0;
 
         var button = new GameObject($"FeatureButton_{feature.Name}").AddComponent<FeatureButton>();
         button.Feature = feature;
@@ -35,8 +37,6 @@ public class UIButtonFactory
         {
             Utils.Logger.Debug($"UIButtonFactory: Created FeatureButton for '{feature.Name}'");
         }
-
-        return button;
     }
 
     private static IEnumerator AwaitLoad(Action action)
@@ -45,9 +45,35 @@ public class UIButtonFactory
         action?.Invoke();
     }
 
-    public void CreateAllButtons(IEnumerable<IFeature> features)
+    public static void CreateAllButtons(IEnumerable<IFeature> features)
     {
-        foreach (var feature in features)
+        var json = Files.LoadOrRepairJson(Constants.Paths.FeaturesStateConfigFilePath);
+        var enumerable = features as IFeature[] ?? features.ToArray();
+
+        foreach (var kvp in json)
+        {
+            try
+            {
+                var feature = enumerable.First(f => f.Name == kvp.Key);
+
+                if (kvp.Value != null && (!kvp.Value.Type.Equals(JTokenType.Boolean)))
+                {
+                    Utils.Logger.Warn($"CreateAllButtons: Cant restore saved state for '{kvp.Key}'");
+                    continue;
+                }
+
+                feature.Enabled = (bool)kvp.Value;
+            }
+            catch (Exception ex)
+            {
+                Utils.Logger.Warn($"CreateAllButtons: Feature invalid '{kvp.Key}'");
+                continue;
+            }
+
+            Utils.Logger.Debug($"CreateAllButtons: State restored for '{kvp.Key}' -> {kvp.Value}");
+        }
+
+        foreach (var feature in enumerable)
         {
             try
             {

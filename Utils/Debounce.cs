@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace HisTools.Config;
+namespace HisTools.Utils;
 
 public static class Debounce
 {
