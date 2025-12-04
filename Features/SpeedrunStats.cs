@@ -41,7 +41,7 @@ public class SpeedrunStats : FeatureBase
 
     private readonly FloatSliderSetting _levelsPosition;
     private readonly BoolSetting _showOnlyInPause;
-    private readonly BoolSetting _predictElapsedTime;
+    private readonly BoolSetting _showPredicted;
 
     private static string Format(TimeSpan t) => t.ToString(@"mm\:ss\:ff");
 
@@ -52,7 +52,7 @@ public class SpeedrunStats : FeatureBase
         EventBus.Subscribe<LevelChangedEvent>(OnLevelChanged);
 
         _showOnlyInPause = AddSetting(new BoolSetting(this, "ShowOnlyInPause", "...", false));
-        _predictElapsedTime = AddSetting(new BoolSetting(this, "PredictElapsedTime", "...", true));
+        _showPredicted = AddSetting(new BoolSetting(this, "PredictElapsedTime", "...", true));
         _levelsPosition = AddSetting(new FloatSliderSetting(this, "Position", "...", 3f, 1f, 6f, 1f, 0));
     }
 
@@ -110,6 +110,18 @@ public class SpeedrunStats : FeatureBase
             : false;
     }
 
+    private TimeSpan PredictElapsedTime(M_Level level, TimeSpan currentElapsed)
+    {
+        var levelHeight = level.GetLength();
+        var traveledHeight = Vectors.ConvertPointToLocal(_playerTransform.position).y;
+        var currentSpeed = traveledHeight / currentElapsed.TotalSeconds;
+
+        var remainingHeight = levelHeight - traveledHeight;
+        var remainingTime = remainingHeight / currentSpeed;
+
+        return TimeSpan.FromSeconds(remainingTime + currentElapsed.TotalSeconds);
+    }
+
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
         if (!ShouldUpdate()) return;
@@ -125,24 +137,17 @@ public class SpeedrunStats : FeatureBase
 
         var prevNowColor = CalculateColor(_prevLevel.ElapsedTime, _prevLevel.AvgTime);
 
-        var currentElapsed = TimeSpan.FromSeconds(CL_GameManager.gMan.GetGameTime()) - _currLevel.NowTime;
-        var currNowColor = CalculateColor(currentElapsed, _currLevel.AvgTime);
-
         _prevText.text =
             $"<color=grey>{_prevLevel.DisplayName} - " +
             $"<mark={bg}><b><color={prevNowColor}>{Format(_prevLevel.ElapsedTime)}</color></b></mark> " +
             $"<color=#808080>(Avg: <b>{Format(_prevLevel.AvgTime)}</b> | Best: <b>{Format(_prevLevel.BestTime)}</b>)</color>";
 
-        var levelHeight = _currLevel.Instance.GetLength();
-        var traveledHeight = Vectors.ConvertPointToLocal(_playerTransform.position).y;
-        var currentSpeed = traveledHeight / currentElapsed.TotalSeconds;
+        var currentElapsed = TimeSpan.FromSeconds(CL_GameManager.gMan.GetGameTime()) - _currLevel.NowTime;
 
-        var remainingHeight = levelHeight - traveledHeight;
-        var remainingTime = remainingHeight / currentSpeed;
+        var predictedElapsed = PredictElapsedTime(_currLevel.Instance, currentElapsed);
+        var calculatedElapsedTime = _showPredicted.Value ? predictedElapsed : currentElapsed;
 
-        var predicted = TimeSpan.FromSeconds(remainingTime + currentElapsed.TotalSeconds);
-
-        var calculatedElapsedTime = _predictElapsedTime.Value ? predicted : currentElapsed;
+        var currNowColor = CalculateColor(currentElapsed, _currLevel.AvgTime);
 
         _currText.text =
             $"<color=grey>{_currLevel.DisplayName} - " +
