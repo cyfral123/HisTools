@@ -99,7 +99,7 @@ public class RoutePlayer : FeatureBase
 
         if (!_routeNameLabelPrefab)
         {
-            if (PrefabDatabase.Instance.GetPrefab("histools/InfoLabel", false)
+            if (PrefabDatabase.Instance.GetObject("histools/InfoLabel", false)
                 .TryGet(out var prefab))
             {
                 var go = Object.Instantiate(prefab);
@@ -114,7 +114,7 @@ public class RoutePlayer : FeatureBase
 
         if (!_routeDescriptionLabelPrefab)
         {
-            if (PrefabDatabase.Instance.GetPrefab("histools/InfoLabel", false)
+            if (PrefabDatabase.Instance.GetObject("histools/InfoLabel", false)
                 .TryGet(out var prefab))
             {
                 var go = Object.Instantiate(prefab);
@@ -130,7 +130,7 @@ public class RoutePlayer : FeatureBase
 
         if (!_markerPrefab)
         {
-            if (PrefabDatabase.Instance.GetPrefab("histools/SphereMarker", false)
+            if (PrefabDatabase.Instance.GetObject("histools/SphereMarker", false)
                 .TryGet(out var prefab))
             {
                 var go = Object.Instantiate(prefab);
@@ -142,7 +142,7 @@ public class RoutePlayer : FeatureBase
 
         if (!_notePrefab)
         {
-            if (PrefabDatabase.Instance.GetPrefab("histools/InfoLabel", false)
+            if (PrefabDatabase.Instance.GetObject("histools/InfoLabel", false)
                 .TryGet(out var prefab))
             {
                 var go = Object.Instantiate(prefab);
@@ -174,7 +174,8 @@ public class RoutePlayer : FeatureBase
         var level = CL_EventManager.currentLevel;
         if (level)
             DrawRoutes(level);
-
+        
+        
         EventBus.Subscribe<ToggleRouteEvent>(OnToggleRoute);
         EventBus.Subscribe<WorldUpdateEvent>(OnWorldUpdate);
         EventBus.Subscribe<EnterLevelEvent>(OnEnterLevel);

@@ -60,7 +60,7 @@ public class RouteRecorder : FeatureBase
         
         if (!_markerPrefab)
         {
-            if (PrefabDatabase.Instance.GetPrefab("histools/SphereMarker", false)
+            if (PrefabDatabase.Instance.GetObject("histools/SphereMarker", false)
                 .TryGet(out var prefab))
             {
                 var go = Object.Instantiate(prefab);

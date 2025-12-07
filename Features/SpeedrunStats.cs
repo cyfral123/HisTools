@@ -84,7 +84,7 @@ public class SpeedrunStats : FeatureBase
         if (_statsCanvas && _prevText)
             return;
 
-        if (PrefabDatabase.Instance.GetPrefab("histools/UI_Speedrun", false)
+        if (PrefabDatabase.Instance.GetObject("histools/UI_Speedrun", false)
             .TryGet(out var prefab))
         {
             var go = Object.Instantiate(prefab);
