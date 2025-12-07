@@ -1,6 +1,8 @@
+using DG.Tweening;
 using HisTools.Features.Controllers;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace HisTools.UI;
@@ -8,18 +10,18 @@ namespace HisTools.UI;
 [RequireComponent(typeof(Toggle))]
 public class FeatureButton : MonoBehaviour
 {
-    public Color EnabledColor = Color.green;
-    public Color DisabledColor = Color.gray;
-    public TextMeshProUGUI TextLabel;
+    public Color enabledColor = Color.green;
+    public Color disabledColor = Color.gray;
+    public TextMeshProUGUI textLabel;
 
     private Toggle _toggle;
-    public float MinHeight = 25f;
+    private const float MinHeight = 25f;
     public IFeature Feature;
 
     private void Start()
     {
         transform.SetParent(Feature.Category.LayoutTransform, false);
-        EnabledColor = Utils.Palette.FromHtml(Plugin.EnabledHtml.Value);
+        enabledColor = Utils.Palette.FromHtml(Plugin.EnabledHtml.Value);
 
         _toggle = GetComponent<Toggle>();
         var navigation = _toggle.navigation;
@@ -37,7 +39,7 @@ public class FeatureButton : MonoBehaviour
         shadow.effectDistance = new Vector2(2f, -2f);
         shadow.effectDistance = new Vector2(3f, -3f);
 
-        TextLabel = transform.AddMyText(Feature.Name, TextAlignmentOptions.Left, 16f, Color.gray, 5f);
+        textLabel = transform.AddMyText(Feature.Name, TextAlignmentOptions.Left, 16f, Color.gray, 6f);
         UpdateState(Feature.Enabled);
 
         _toggle.onValueChanged.AddListener(UpdateState);
@@ -45,7 +47,11 @@ public class FeatureButton : MonoBehaviour
 
     private void UpdateState(bool isOn)
     {
-        TextLabel.color = isOn ? EnabledColor : DisabledColor;
+        var targetColor = isOn ? enabledColor : disabledColor;
+        var targetScale = isOn ? Vector2.one * 1f : Vector2.one * 0.96f;
+        
+        textLabel.DOColor(targetColor, 0.3f).SetEase(Ease.InOutCubic);
+        textLabel.rectTransform.DOScale(targetScale, 0.3f).SetEase(Ease.OutBack);
         _toggle.isOn = isOn;
         EventBus.Publish(new FeatureToggleEvent(Feature, isOn));
     }

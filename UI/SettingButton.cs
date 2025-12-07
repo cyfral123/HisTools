@@ -25,8 +25,7 @@ public class SettingsButton : MonoBehaviour
         _settingsRect.anchorMin = new Vector2(1, 0.5f);
         _settingsRect.anchorMax = new Vector2(1, 0.5f);
         _settingsRect.pivot = new Vector2(1, 0.5f);
-        // -1f because shadow
-        _settingsRect.anchoredPosition = new Vector2(0f, -1f);
+        _settingsRect.anchoredPosition = new Vector2(-2f, -1f);
         _settingsRect.sizeDelta = new Vector2(25f, 25f);
 
         _settingsButton = gameObject.AddComponent<Button>();
