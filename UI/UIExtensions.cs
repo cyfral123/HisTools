@@ -5,7 +5,7 @@ namespace HisTools.UI;
 
 public static class UIExtensions
 {
-    public static TextMeshProUGUI AddMyText(this Transform parent, string content, TextAlignmentOptions aligment, float fontsize, Color color, float leftPadding = 0f)
+    public static TextMeshProUGUI AddMyText(this Transform parent, string content, TextAlignmentOptions alignment, float fontsize, Color color, float leftPadding = 0f)
     {
         var textGO = new GameObject("HisTools_Text");
         textGO.transform.SetParent(parent.transform, false);
@@ -18,7 +18,7 @@ public static class UIExtensions
 
         var tmp = textGO.AddComponent<TextMeshProUGUI>();
         tmp.text = content;
-        tmp.alignment = aligment;
+        tmp.alignment = alignment;
         tmp.fontSize = fontsize;
         tmp.fontWeight = FontWeight.Regular;
         tmp.color = color;
