@@ -10,6 +10,7 @@ public abstract class FeatureBase : IFeature
     public ICategory Category { get; set; }
     public string Name { get; }
     public string Description { get; }
+
     public bool Enabled { get; set; }
 
     private readonly List<IFeatureSetting> _settings = [];
@@ -27,6 +28,7 @@ public abstract class FeatureBase : IFeature
 
             if (e.Enabled) Enable();
             else Disable();
+
             Utils.Files.SaveFeatureStateToConfig(Name, Enabled);
         });
 
@@ -45,11 +47,6 @@ public abstract class FeatureBase : IFeature
     {
     }
 
-    protected virtual void OnSettingChanged(string featureName, IFeatureSetting setting)
-    {
-    }
-
-
     private void Enable()
     {
         if (Enabled) return;
@@ -64,6 +61,11 @@ public abstract class FeatureBase : IFeature
         OnDisable();
     }
 
+
+    protected virtual void OnSettingChanged(string featureName, IFeatureSetting setting)
+    {
+    }
+
     public void SetCategory(ICategory category)
     {
         Category = category;
@@ -71,11 +73,10 @@ public abstract class FeatureBase : IFeature
 
     public T GetSetting<T>(string name) where T : class, IFeatureSetting
     {
-        var result = _settings.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.CurrentCultureIgnoreCase));
-        if (result != null) return result as T;
+        var s = _settings.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.CurrentCultureIgnoreCase));
+        if (s != null) return s as T;
         Utils.Logger.Warn($"Feature {Name} does not have setting {name}");
         return null;
-
     }
 
     protected T AddSetting<T>(T setting) where T : IFeatureSetting
