@@ -28,7 +28,7 @@ public class DebugInfo : FeatureBase
     {
         if (_uiCanvas && _uiText) return;
 
-        if (!PrefabDatabase.Instance.GetPrefab("histools/Feature_DebugInfo", false)
+        if (!PrefabDatabase.Instance.GetObject("histools/Feature_DebugInfo", false)
                 .TryGet(out var prefab)) return;
         var go = Object.Instantiate(prefab);
         _uiCanvas = go.GetComponentInChildren<Canvas>(true);
