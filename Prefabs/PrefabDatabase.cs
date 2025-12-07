@@ -16,7 +16,20 @@ namespace HisTools.Prefabs
         private readonly Dictionary<string, AssetBundle> _loadedBundles = new();
         private readonly Dictionary<string, Object> _loadedAssets = new();
 
-        public Option<GameObject> GetPrefab(string prefabName, bool active)
+        public Option<Texture2D> GetTexture(string spriteName)
+        {
+            var result = _loadedAssets.TryGetValue(spriteName, out var cachedAsset)
+                ? Option<Texture2D>.Some((Texture2D)cachedAsset)
+                : Option<Texture2D>.None();
+
+            if (result.TryGet(out var sprite))
+                return Option<Texture2D>.Some(sprite);
+
+            Utils.Logger.Error($"PrefabDatabase: Sprite {spriteName} not found");
+            return result;
+        }
+
+        public Option<GameObject> GetObject(string prefabName, bool active)
         {
             var result = _loadedAssets.TryGetValue(prefabName, out var cachedAsset)
                 ? Option<GameObject>.Some((GameObject)cachedAsset)
@@ -44,7 +57,7 @@ namespace HisTools.Prefabs
                 var fallbackPath = Path.Combine(Constants.Paths.PluginDllDir, bundleName);
                 if (!File.Exists(fallbackPath))
                     return Option<AssetBundle>.None();
-                
+
                 bundlePath = fallbackPath;
             }
 
