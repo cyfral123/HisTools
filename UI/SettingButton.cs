@@ -1,28 +1,27 @@
 using System;
 using System.Linq;
 using HisTools.Features.Controllers;
+using HisTools.Prefabs;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace HisTools.UI;
 
-[RequireComponent(typeof(Toggle), typeof(RectTransform), typeof(Button))]
 public class SettingsButton : MonoBehaviour
 {
-
-    private Toggle _toggle;
     private RectTransform _settingsRect;
     private Button _settingsButton;
     public IFeature Feature;
 
     private void Awake()
     {
-        _toggle = GetComponent<Toggle>();
-        var navigation = _toggle.navigation;
-        navigation.mode = Navigation.Mode.None;
-        _toggle.navigation = navigation;
+        var settingsImg = gameObject.AddComponent<Image>();
+        PrefabDatabase.Instance.GetTexture("histools/Wrench").TryGet(out var sprite);
+        settingsImg.sprite =
+            Sprite.Create(sprite, new Rect(0, 0, sprite.width, sprite.height), new Vector2(0.5f, 0.5f));
+        settingsImg.color = Color.gray;
 
-        _settingsRect = GetComponent<RectTransform>();
+        _settingsRect = gameObject.GetComponent<RectTransform>();
         _settingsRect.anchorMin = new Vector2(1, 0.5f);
         _settingsRect.anchorMax = new Vector2(1, 0.5f);
         _settingsRect.pivot = new Vector2(1, 0.5f);
@@ -30,62 +29,22 @@ public class SettingsButton : MonoBehaviour
         _settingsRect.anchoredPosition = new Vector2(0f, -1f);
         _settingsRect.sizeDelta = new Vector2(25f, 25f);
 
-        var settingsImg = gameObject.AddComponent<Image>();
-
-        var wrenchIcon = LoadWrenchIcon();
-        settingsImg.sprite = wrenchIcon;
-        settingsImg.color = Color.gray;
-
-        _settingsButton = GetComponent<Button>();
+        _settingsButton = gameObject.AddComponent<Button>();
+        var navigation = _settingsButton.navigation;
+        navigation.mode = Navigation.Mode.None;
         _settingsButton.navigation = navigation;
+        _settingsButton.targetGraphic = settingsImg;
 
         var colors = _settingsButton.colors;
         colors.normalColor = Color.gray;
         colors.highlightedColor = Color.white;
-        
+
         colors.pressedColor = Utils.Palette.FromHtml(Plugin.EnabledHtml.Value);
         colors.disabledColor = Color.black;
         colors.colorMultiplier = 1f;
         _settingsButton.colors = colors;
 
         _settingsButton.transition = Selectable.Transition.ColorTint;
-        _settingsButton.onClick.AddListener(() =>
-        {
-            EventBus.Publish(new FeatureSettingsMenuToggleEvent(Feature));
-        });
-    }
-
-    private static Sprite LoadWrenchIcon()
-    {
-        Sprite wrenchIcon = null;
-
-        try
-        {
-            wrenchIcon = CL_AssetManager.GetSpriteAsset("Wrench");
-        }
-        catch (Exception ex)
-        {
-            Utils.Logger.Warn($"Failed to load wrench icon from CL_AssetManager: {ex.Message}");
-        }
-
-        if (wrenchIcon != null)
-        {
-            wrenchIcon.texture.filterMode = FilterMode.Bilinear;
-            return wrenchIcon;
-        }
-
-        return CreateFallbackSprite();
-    }
-
-    private static Sprite CreateFallbackSprite()
-    {
-        const int size = 24;
-        var texture = new Texture2D(size, size);
-
-        var pixels = Enumerable.Repeat(Color.gray, size * size).ToArray();
-        texture.SetPixels(pixels);
-        texture.Apply();
-
-        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+        _settingsButton.onClick.AddListener(() => { EventBus.Publish(new FeatureSettingsMenuToggleEvent(Feature)); });
     }
 }

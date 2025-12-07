@@ -6,6 +6,7 @@ using HisTools.Features.Controllers;
 using HisTools.Utils;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace HisTools.UI.Controllers;
 
@@ -21,17 +22,9 @@ public class UIButtonFactory
         var button = new GameObject($"FeatureButton_{feature.Name}").AddComponent<FeatureButton>();
         button.Feature = feature;
 
-
         if (hasSettings)
         {
-            // Waiting for WKAssetsDatabase to take wrench icon for setting button
-            CoroutineRunner.Instance.StartCoroutine(AwaitLoad(() =>
-            {
-                var settingsButton = new GameObject($"SettingsButton_{feature.Name}").AddComponent<SettingsButton>();
-                settingsButton.Feature = feature;
-                settingsButton.transform.SetParent(button.transform, false);
-                Utils.Logger.Debug($"UIButtonFactory: Created FeatureButtonWithSettings for '{feature.Name}'");
-            }));
+            CoroutineRunner.Instance.StartCoroutine(AwaitLoadSettingsButton(feature, button));
         }
         else
         {
@@ -39,10 +32,13 @@ public class UIButtonFactory
         }
     }
 
-    private static IEnumerator AwaitLoad(Action action)
+    private static IEnumerator AwaitLoadSettingsButton(IFeature feature, FeatureButton button)
     {
-        yield return new WaitForSeconds(1f);
-        action?.Invoke();
+        yield return null;
+        var settingsButton = new GameObject($"SettingsButton_{feature.Name}").AddComponent<SettingsButton>();
+        settingsButton.transform.SetParent(button.transform, false);
+        settingsButton.Feature = feature;
+        Utils.Logger.Debug($"UIButtonFactory: Created FeatureButtonWithSettings for '{feature.Name}'");
     }
 
     public static void CreateAllButtons(IEnumerable<IFeature> features)
@@ -62,11 +58,11 @@ public class UIButtonFactory
                     continue;
                 }
 
-                feature.Enabled = (bool)kvp.Value;
+                EventBus.Publish(new FeatureToggleEvent(feature, (bool)kvp.Value));
             }
             catch (Exception ex)
             {
-                Utils.Logger.Warn($"CreateAllButtons: Feature invalid '{kvp.Key}'");
+                Utils.Logger.Warn($"CreateAllButtons: Feature invalid '{kvp.Key}' -> {ex.Message}");
                 continue;
             }
 
