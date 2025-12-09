@@ -57,7 +57,7 @@ public class FeaturesMenu : MonoBehaviour
         CanvasGroup.alpha = 0f;
         CanvasGroup.interactable = false;
         CanvasGroup.blocksRaycasts = false;
-
+        
         var image = FeaturesMenuGO.GetComponent<Image>() ?? FeaturesMenuGO.AddComponent<Image>();
         image.color = new Color(0f, 0f, 0f, 1f);
         image.raycastTarget = false;
