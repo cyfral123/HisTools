@@ -19,11 +19,10 @@ public static class PlayerPatch
             Velocity = typeof(ENT_Player).GetField("vel", BindingFlags.NonPublic | BindingFlags.Instance);
         }
 
-        // Patch for enabling cursor while tools menu is opened
         public static void Postfix(ENT_Player __instance)
         {
-
-            if (Input.GetKeyDown(Plugin.FeaturesMenuToggleKey.Value) && !CL_GameManager.isDead() && !CL_GameManager.gMan.isPaused)
+            if (Input.GetKeyDown(Plugin.FeaturesMenuToggleKey.Value) && !CL_GameManager.isDead() &&
+                !CL_GameManager.gMan.isPaused)
             {
                 FeaturesMenu.ToggleMenu();
             }
