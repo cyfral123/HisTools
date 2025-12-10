@@ -65,49 +65,38 @@ public class SpeedrunStats : FeatureBase
     {
         EventBus.Unsubscribe<WorldUpdateEvent>(OnWorldUpdate);
 
-        if (_statsCanvas)
-            Object.Destroy(_statsCanvas.gameObject);
+        if (_statsCanvas) Object.Destroy(_statsCanvas.gameObject);
     }
 
     private void EnsurePlayer()
     {
         if (_playerTransform) return;
-
-        if (Player.GetTransform().TryGet(out var value))
-        {
-            _playerTransform = value;
-        }
+        if (Player.GetTransform().TryGet(out var value)) _playerTransform = value;
     }
 
     private void EnsureUI()
     {
-        if (_statsCanvas && _prevText)
-            return;
+        if (_statsCanvas && _prevText) return;
+        if (!PrefabDatabase.Instance.GetObject("histools/UI_Speedrun", false).TryGet(out var prefab)) return;
 
-        if (PrefabDatabase.Instance.GetObject("histools/UI_Speedrun", false)
-            .TryGet(out var prefab))
-        {
-            var go = Object.Instantiate(prefab);
+        var go = Object.Instantiate(prefab);
 
-            _statsCanvas = go.GetComponent<Canvas>();
+        _statsCanvas = go.GetComponent<Canvas>();
 
-            _statsCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        _statsCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-            var texts = _statsCanvas.GetComponentsInChildren<TextMeshProUGUI>(true);
+        var texts = _statsCanvas.GetComponentsInChildren<TextMeshProUGUI>(true);
 
-            _prevText = texts[0];
-            _currText = texts[1];
+        _prevText = texts[0];
+        _currText = texts[1];
 
-            var group = _statsCanvas.GetComponentInChildren<VerticalLayoutGroup>(true);
-            Anchor.SetAnchor(group.GetComponent<RectTransform>(), (int)_levelsPosition.Value);
-        }
+        var group = _statsCanvas.GetComponentInChildren<VerticalLayoutGroup>(true);
+        Anchor.SetAnchor(group.GetComponent<RectTransform>(), (int)_levelsPosition.Value);
     }
 
     private bool ShouldUpdate()
     {
-        return CL_EventManager.currentLevel
-            ? _currLevel.Instance
-            : false;
+        return CL_EventManager.currentLevel ? _currLevel.Instance : false;
     }
 
     private TimeSpan PredictElapsedTime(M_Level level, TimeSpan currentElapsed)
@@ -162,8 +151,7 @@ public class SpeedrunStats : FeatureBase
         const string cheated = "#ffffff";
         var attention = Plugin.EnabledHtml.Value;
 
-        if (Cheats.Detected)
-            return cheated;
+        if (Cheats.Detected) return cheated;
 
         // If the player is within 20% of the average time, highlight the current time
         if (avgTime.TotalSeconds > 0)
@@ -171,10 +159,7 @@ public class SpeedrunStats : FeatureBase
             var deviation = Math.Abs(elapsedTime.TotalSeconds - avgTime.TotalSeconds);
             var percent = deviation / avgTime.TotalSeconds;
 
-            if (percent < 0.2 || elapsedTime.TotalSeconds < avgTime.TotalSeconds)
-            {
-                return attention;
-            }
+            if (percent < 0.2 || elapsedTime.TotalSeconds < avgTime.TotalSeconds) return attention;
         }
 
         return muted;
