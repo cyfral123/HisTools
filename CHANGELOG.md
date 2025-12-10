@@ -1,4 +1,14 @@
-# 0.1.1 (Current)
+# 0.2.0 (Current)
+<details>
+  <summary>📜 View </summary>
+
+  ## New Feature:
+  - Added `BuffsDisplay`, a feature that displays all current buff effects (Stacks/Icon/Duration)
+  
+  <img src="https://github.com/cyfral123/HisTools/blob/master/BuffsDisplay_preview.png?raw=true" alt="BuffsDisplay_preview"/>
+</details>  
+
+# 0.1.1
 <details>
   <summary>📜 View </summary>
   
