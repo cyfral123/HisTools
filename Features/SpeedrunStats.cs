@@ -83,8 +83,6 @@ public class SpeedrunStats : FeatureBase
 
         _statsCanvas = go.GetComponent<Canvas>();
 
-        _statsCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
         var texts = _statsCanvas.GetComponentsInChildren<TextMeshProUGUI>(true);
 
         _prevText = texts[0];
