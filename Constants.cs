@@ -6,7 +6,7 @@ namespace HisTools;
 public static class Constants
 {
     public const string PluginName = "HisTools";
-    public const string PluginVersion = "0.1.1";
+    public const string PluginVersion = "0.2.0";
     public const string PluginGuid = "com.cyfral.HisTools";
 
     public static class Animation
@@ -18,11 +18,11 @@ public static class Constants
 
     public static class Paths
     {
-        public const string Routes = "Routes";
-        public const string Settings = "Settings";
-        public const string SpeedrunStats = "SpeedrunStats";
-        public const string FeaturesStateFile = "features_state.json";
-        public const string RoutesStateFile = "routes_state.json";
+        private const string Routes = "Routes";
+        private const string Settings = "Settings";
+        private const string SpeedrunStats = "SpeedrunStats";
+        private const string FeaturesStateFile = "features_state.json";
+        private const string RoutesStateFile = "routes_state.json";
 
         public static string ConfigDir => Path.Combine(BepInEx.Paths.BepInExRootPath, PluginName);
         public static string PluginDllDir => Path.GetDirectoryName(Plugin.Instance.Info.Location) ?? string.Empty;
