@@ -29,12 +29,19 @@ public class BuffsDisplay : FeatureBase
     private Option<BuffIndicator> _pills;
     private Option<BuffIndicator> _foodBar;
 
+    private readonly BoolSetting _showOnlyInPause;
+    private readonly FloatSliderSetting _buffsPosition;
+
     public BuffsDisplay() : base("BuffsDisplay", "Display all current buff effects")
     {
+        _showOnlyInPause = AddSetting(new BoolSetting(this, "ShowOnlyInPause", "...", false));
+        _buffsPosition = AddSetting(new FloatSliderSetting(this, "Position", "...", 2f, 1f, 6f, 1f, 0));
     }
 
     private Option<BuffIndicator> GetBuffIndicator(string name)
     {
+        if (!_layout) return Option<BuffIndicator>.None();
+
         var transform = _layout.transform.Find(name);
         var icons = transform.Find("Icons").GetComponentsInChildren<Image>(true);
         var value = transform.Find("Value").GetComponent<TextMeshProUGUI>();
@@ -49,15 +56,12 @@ public class BuffsDisplay : FeatureBase
 
     private bool EnsurePrefabs()
     {
-        if (_grub.IsSome && _injector.IsSome && _pills.IsSome && _foodBar.IsSome) return true;
+        if (_grub.IsSome && _injector.IsSome && _pills.IsSome && _foodBar.IsSome && _layout && _canvas) return true;
         if (!PrefabDatabase.Instance.GetObject("histools/UI_BuffsDisplay", true).TryGet(out var prefab)) return false;
 
         var go = Object.Instantiate(prefab);
         _canvas = go.GetComponent<Canvas>();
-
-        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-
-        _layout = _canvas.GetComponentInChildren<HorizontalLayoutGroup>();
+        _layout = _canvas.GetComponentInChildren<HorizontalLayoutGroup>(true);
 
         if (!GetBuffIndicator("Grub").TryGet(out var grub)) return false;
         if (!GetBuffIndicator("Injector").TryGet(out var injector)) return false;
@@ -68,6 +72,8 @@ public class BuffsDisplay : FeatureBase
         _injector = Option<BuffIndicator>.Some(injector);
         _pills = Option<BuffIndicator>.Some(pills);
         _foodBar = Option<BuffIndicator>.Some(foodBar);
+
+        Anchor.SetAnchor(_layout.GetComponent<RectTransform>(), (int)_buffsPosition.Value);
 
         return true;
     }
@@ -138,8 +144,22 @@ public class BuffsDisplay : FeatureBase
 
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
-        if (!EnsurePrefabs()) return;
+        if (!EnsurePrefabs())
+        {
+            Utils.Logger.Error("BuffsDisplay: Failed to ensure prefabs");
+            return;
+        }
+
         if (!Player.GetPlayer().TryGet(out var player)) return;
+
+        if (_showOnlyInPause.Value && !CL_GameManager.gMan.isPaused)
+        {
+            _grub.Unwrap().Transform.gameObject.SetActive(false);
+            _injector.Unwrap().Transform.gameObject.SetActive(false);
+            _foodBar.Unwrap().Transform.gameObject.SetActive(false);
+            _pills.Unwrap().Transform.gameObject.SetActive(false);
+            return;
+        }
 
         var containers = player.curBuffs.currentBuffs;
 
@@ -151,12 +171,9 @@ public class BuffsDisplay : FeatureBase
             .Where(container => !HaveBuff(container, "pilled"))
             .ToList();
 
-        var pilledContainers = SearchBuff(containers, "pilled")
-            .Where(container => !HaveBuff(container, "roided"))
+        var pilledContainers = SearchBuff(containers, "pilled").Where(container => !HaveBuff(container, "roided"))
             .ToList();
-
         var goopedContainers = SearchBuff(containers, "gooped");
-
 
         _grub.Unwrap().Transform.gameObject.SetActive(goopedContainers.Count > 0);
         _injector.Unwrap().Transform.gameObject.SetActive(roidedContainers.Count > 0);
