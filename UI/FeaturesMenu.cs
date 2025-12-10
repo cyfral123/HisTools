@@ -45,7 +45,7 @@ public class FeaturesMenu : MonoBehaviour
 
         Canvas = FeaturesMenuGO.GetComponent<Canvas>() ?? FeaturesMenuGO.AddComponent<Canvas>();
         Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        Canvas.sortingOrder = 9999;
+        Canvas.sortingOrder = Constants.UI.CanvasSortOrder;
 
         if (FeaturesMenuGO.GetComponent<CanvasScaler>() == null)
             FeaturesMenuGO.AddComponent<CanvasScaler>();
@@ -64,14 +64,14 @@ public class FeaturesMenu : MonoBehaviour
 
         if (!SettingsGO)
         {
-            SettingsGO = new GameObject("HisTools_SettingsPanelController");
+            SettingsGO = new GameObject(Constants.UI.SettingsPanelName);
             SettingsGO.AddComponent<SettingsPanelController>();
             SettingsGO.transform.SetParent(FeaturesMenuGO.transform, false);
         }
 
         if (!CategoriesContainerGO)
         {
-            CategoriesContainerGO = new GameObject("HisTools_CategoriesContainer");
+            CategoriesContainerGO = new GameObject(Constants.UI.CategoriesContainerName);
             CategoriesContainerGO.transform.SetParent(FeaturesMenuGO.transform, false);
             var rect = CategoriesContainerGO.AddComponent<RectTransform>();
             rect.anchorMin = new Vector2(0, 0);
