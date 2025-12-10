@@ -11,74 +11,65 @@ using Object = UnityEngine.Object;
 
 namespace HisTools.Features;
 
+internal struct BuffIndicator
+{
+    public Transform Transform;
+    public Image[] Icons;
+    public TextMeshProUGUI Value;
+    public TextMeshProUGUI Time;
+}
+
 public class BuffsDisplay : FeatureBase
 {
     private Canvas _canvas;
+    private HorizontalLayoutGroup _layout;
 
-    private Transform _grub;
-    private Transform _injector;
-    private Transform _pills;
-    private Transform _foodBar;
-
-    private Image[] _grubIcons;
-    private Image[] _injectorIcons;
-    private Image[] _pillsIcons;
-    private Image[] _foodBarIcons;
-
-    private TextMeshProUGUI _grubValue;
-    private TextMeshProUGUI _injectorValue;
-    private TextMeshProUGUI _pillsValue;
-    private TextMeshProUGUI _foodBarValue;
-
-    private TextMeshProUGUI _grubTime;
-    private TextMeshProUGUI _injectorTime;
-    private TextMeshProUGUI _pillsTime;
-    private TextMeshProUGUI _foodBarTime;
+    private Option<BuffIndicator> _grub;
+    private Option<BuffIndicator> _injector;
+    private Option<BuffIndicator> _pills;
+    private Option<BuffIndicator> _foodBar;
 
     public BuffsDisplay() : base("BuffsDisplay", "Display all current buff effects")
     {
-        
     }
 
-    private void EnsurePrefabs()
+    private Option<BuffIndicator> GetBuffIndicator(string name)
     {
-        if (_grub && _injector && _pills) return;
+        var transform = _layout.transform.Find(name);
+        var icons = transform.Find("Icons").GetComponentsInChildren<Image>(true);
+        var value = transform.Find("Value").GetComponent<TextMeshProUGUI>();
+        var time = transform.Find("Time").GetComponent<TextMeshProUGUI>();
 
-        if (PrefabDatabase.Instance.GetObject("histools/UI_BuffsDisplay", true)
-            .TryGet(out var prefab))
-        {
-            var go = Object.Instantiate(prefab);
-            _canvas = go.GetComponent<Canvas>();
+        if (icons.Length == 0 || !value || !time || !transform)
+            return Option<BuffIndicator>.None();
 
-            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        return Option<BuffIndicator>.Some(new BuffIndicator
+            { Transform = transform, Icons = icons, Value = value, Time = time });
+    }
 
-            var buffs = _canvas.GetComponentInChildren<HorizontalLayoutGroup>();
+    private bool EnsurePrefabs()
+    {
+        if (_grub.IsSome && _injector.IsSome && _pills.IsSome && _foodBar.IsSome) return true;
+        if (!PrefabDatabase.Instance.GetObject("histools/UI_BuffsDisplay", true).TryGet(out var prefab)) return false;
 
-            _grub = buffs.transform.Find("Grub");
-            _injector = buffs.transform.Find("Injector");
-            _pills = buffs.transform.Find("Pills");
-            _foodBar = buffs.transform.Find("FoodBar");
+        var go = Object.Instantiate(prefab);
+        _canvas = go.GetComponent<Canvas>();
 
-            _grubIcons = _grub.Find("Icons").GetComponentsInChildren<Image>(true);
-            _injectorIcons = _injector.Find("Icons").GetComponentsInChildren<Image>(true);
-            _pillsIcons = _pills.Find("Icons").GetComponentsInChildren<Image>(true);
-            _foodBarIcons = _foodBar.Find("Icons").GetComponentsInChildren<Image>(true);
+        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-            _grubValue = _grub.Find("Value").GetComponent<TextMeshProUGUI>();
-            _injectorValue = _injector.Find("Value").GetComponent<TextMeshProUGUI>();
-            _pillsValue = _pills.Find("Value").GetComponent<TextMeshProUGUI>();
-            _foodBarValue = _foodBar.Find("Value").GetComponent<TextMeshProUGUI>();
+        _layout = _canvas.GetComponentInChildren<HorizontalLayoutGroup>();
 
-            _grubTime = _grub.Find("Time").GetComponent<TextMeshProUGUI>();
-            _injectorTime = _injector.Find("Time").GetComponent<TextMeshProUGUI>();
-            _pillsTime = _pills.Find("Time").GetComponent<TextMeshProUGUI>();
-            _foodBarTime = _foodBar.Find("Time").GetComponent<TextMeshProUGUI>();
+        if (!GetBuffIndicator("Grub").TryGet(out var grub)) return false;
+        if (!GetBuffIndicator("Injector").TryGet(out var injector)) return false;
+        if (!GetBuffIndicator("Pills").TryGet(out var pills)) return false;
+        if (!GetBuffIndicator("FoodBar").TryGet(out var foodBar)) return false;
 
-            _grub.gameObject.SetActive(false);
-            _injector.gameObject.SetActive(false);
-            _pills.gameObject.SetActive(false);
-            _foodBar.gameObject.SetActive(false);
-        }
+        _grub = Option<BuffIndicator>.Some(grub);
+        _injector = Option<BuffIndicator>.Some(injector);
+        _pills = Option<BuffIndicator>.Some(pills);
+        _foodBar = Option<BuffIndicator>.Some(foodBar);
+
+        return true;
     }
 
     public override void OnEnable()
@@ -147,11 +138,8 @@ public class BuffsDisplay : FeatureBase
 
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
-        EnsurePrefabs();
-        if (!_injector || !_grub || !_pills || !_foodBar) return;
-
-        if (!Player.GetPlayer().TryGet(out var player))
-            return;
+        if (!EnsurePrefabs()) return;
+        if (!Player.GetPlayer().TryGet(out var player)) return;
 
         var containers = player.curBuffs.currentBuffs;
 
@@ -170,60 +158,47 @@ public class BuffsDisplay : FeatureBase
         var goopedContainers = SearchBuff(containers, "gooped");
 
 
-        _grub.gameObject.SetActive(goopedContainers.Count > 0);
-        _injector.gameObject.SetActive(roidedContainers.Count > 0);
-        _foodBar.gameObject.SetActive(foodBarContainers.Count > 0);
-        _pills.gameObject.SetActive(pilledContainers.Count > 0);
+        _grub.Unwrap().Transform.gameObject.SetActive(goopedContainers.Count > 0);
+        _injector.Unwrap().Transform.gameObject.SetActive(roidedContainers.Count > 0);
+        _foodBar.Unwrap().Transform.gameObject.SetActive(foodBarContainers.Count > 0);
+        _pills.Unwrap().Transform.gameObject.SetActive(pilledContainers.Count > 0);
 
         if (goopedContainers.Count > 0)
-        {
-            var container = goopedContainers.First();
-            var buff = GetBuffs(container, "gooped").First();
-            var secondsLeft = SummaryBuffSecondsLeft(goopedContainers, buff.id);
-
-            _grubValue.text = $"x{goopedContainers.Count}";
-            _grubTime.text = GetFormattedTime(secondsLeft);
-
-            UpdateIconsStack(_grubIcons, goopedContainers.Count);
-        }
+            RenderBuff(goopedContainers, _grub.Unwrap(), "gooped");
 
         if (roidedContainers.Count > 0)
-        {
-            var container = roidedContainers.First();
-            var buff = GetBuffs(container, "roided").First();
-            var secondsLeft = SummaryBuffSecondsLeft(roidedContainers, buff.id);
-
-            _injectorValue.text = $"x{roidedContainers.Count}";
-            _injectorTime.text = GetFormattedTime(secondsLeft);
-
-            UpdateIconsStack(_injectorIcons, roidedContainers.Count);
-        }
+            RenderBuff(roidedContainers, _injector.Unwrap(), "roided");
 
         if (pilledContainers.Count > 0)
-        {
-            var container = pilledContainers.First();
-            var buff = GetBuffs(container, "pilled").First();
-            var secondsLeft = SummaryBuffSecondsLeft(pilledContainers, buff.id);
-
-            _pillsValue.text = $"x{pilledContainers.Count}";
-            _pillsTime.text = GetFormattedTime(secondsLeft);
-
-            UpdateIconsStack(_pillsIcons, pilledContainers.Count);
-        }
+            RenderBuff(pilledContainers, _pills.Unwrap(), "pilled");
 
         if (foodBarContainers.Count > 0)
+            RenderBuff(foodBarContainers, _foodBar.Unwrap(), "roided", "pilled");
+    }
+
+    private void RenderBuff(List<BuffContainer> containers, BuffIndicator obj, string buffId1, string buffId2 = null)
+    {
+        var container = containers.First();
+        BuffContainer.Buff buff;
+
+        if (string.IsNullOrEmpty(buffId2))
         {
-            var container = foodBarContainers.First();
-            var buff1 = GetBuffs(container, "roided").First();
-            var buff2 = GetBuffs(container, "pilled").First();
-            var buff = buff1.amount < buff2.amount ? buff1 : buff2;
-            var secondsLeft = SummaryBuffSecondsLeft(foodBarContainers, buff.id);
-
-            _foodBarValue.text = $"x{foodBarContainers.Count}";
-            _foodBarTime.text = GetFormattedTime(secondsLeft);
-
-            UpdateIconsStack(_foodBarIcons, foodBarContainers.Count);
+            buff = GetBuffs(container, buffId1).First();
         }
+        else
+        {
+            var b1 = GetBuffs(container, buffId1).First();
+            var b2 = GetBuffs(container, buffId2).First();
+
+            buff = b1.amount < b2.amount ? b1 : b2;
+        }
+
+        var secondsLeft = SummaryBuffSecondsLeft(containers, buff.id);
+
+        obj.Value.text = $"x{containers.Count}";
+        obj.Time.text = GetFormattedTime(secondsLeft);
+
+        UpdateIconsStack(obj.Icons, containers.Count);
     }
 
     public override void OnDisable()
