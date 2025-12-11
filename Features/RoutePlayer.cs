@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using HisTools.Features.Controllers;
 using HisTools.Prefabs;
@@ -123,7 +124,7 @@ public class RoutePlayer : FeatureBase
                 var look = go.AddComponent<LookAtPlayer>();
                 look.player = _playerTransform;
                 go.AddComponent<LabelLookAnimation>();
-                
+
                 _routeDescriptionLabelPrefab = go;
             }
         }
@@ -159,7 +160,7 @@ public class RoutePlayer : FeatureBase
         {
             var go = new GameObject("HisTools_Line_Prefab");
             go.SetActive(false);
-            
+
             _linePrefab = go.AddComponent<LineRenderer>();
             _linePrefab.startWidth = 0.1f;
             _linePrefab.endWidth = 0.1f;
@@ -174,8 +175,8 @@ public class RoutePlayer : FeatureBase
         var level = CL_EventManager.currentLevel;
         if (level)
             DrawRoutes(level);
-        
-        
+
+
         EventBus.Subscribe<ToggleRouteEvent>(OnToggleRoute);
         EventBus.Subscribe<WorldUpdateEvent>(OnWorldUpdate);
         EventBus.Subscribe<EnterLevelEvent>(OnEnterLevel);
@@ -227,8 +228,61 @@ public class RoutePlayer : FeatureBase
         CoroutineRunner.Instance.StartCoroutine(ProcessRoutes(level));
     }
 
+    private void CreateGuide(string title, string description, Vector3 position)
+    {
+        var absolutePos = Vectors.ConvertPointToAbsolute(position);
+
+        var titleObj = Object.Instantiate(_routeNameLabelPrefab, absolutePos,
+            Quaternion.identity,
+            _infoLabelsContainer);
+        var tmp = titleObj.GetComponent<TextMeshPro>();
+        tmp.text = title;
+        tmp.color = Color.cyan;
+        titleObj.SetActive(true);
+
+        var descObj = Object.Instantiate(_routeDescriptionLabelPrefab, absolutePos,
+            Quaternion.identity,
+            _infoLabelsContainer);
+        tmp = descObj.GetComponent<TextMeshPro>();
+        tmp.text = description;
+        descObj.SetActive(true);
+
+        tmp.ForceMeshUpdate();
+        var lines = tmp.textInfo.lineCount;
+        if (lines < 1) lines = 1;
+
+        descObj.transform.position -= Vector3.up * (0.15f * lines);
+    }
+
+    private void ShowIntroGuides()
+    {
+        CreateGuide("RoutePlayer Guide",
+            "Here you can find various\nguides on how to use RoutePlayer",
+            Vector3.up * 1.75f);
+
+        CreateGuide("Activate/Deactivate",
+            "You can easily activate/deactivate\nroutes by pressing middle mouse button",
+            new Vector3(3.96f, 0.98f * 1.75f, 2.98f));
+
+        var rawRouteDirPath = Path.Combine(Constants.Paths.RoutesPathDir);
+        var half = rawRouteDirPath.Length / 2;
+        var left = rawRouteDirPath[..half];
+        var right = rawRouteDirPath[half..];
+        CreateGuide("Where are the routes stored, full path:",
+            $"{left}\n{right}",
+            new Vector3(-3.96f, 0.98f * 1.75f, 2.98f));
+    }
+
     private IEnumerator ProcessRoutes(M_Level level)
     {
+        if (level.levelName == "M1_Intro_01")
+        {
+            Utils.Logger.Warn("RoutePlayer: Intro level, skipping");
+            ShowIntroGuides();
+                
+            yield break;
+        }
+
         List<string> filePaths = null;
         yield return CoroutineRunner.Instance.StartCoroutine(
             Files.GetRouteFilesByTargetLevel(level.levelName, callback => filePaths = callback));
@@ -265,9 +319,9 @@ public class RoutePlayer : FeatureBase
         // 1) Convert local points to absolute positions
         var absolutePoints = new List<Vector3>(routeData.points.Count);
         absolutePoints.AddRange(routeData.points.Select(Vectors.ConvertPointToAbsolute));
-        
+
         yield return new WaitForEndOfFrame();
-        
+
         // 2) SmoothPath
         absolutePoints = SmoothUtil.Path(absolutePoints, GetSetting<FloatSliderSetting>("Line quality").Value);
 
@@ -276,16 +330,16 @@ public class RoutePlayer : FeatureBase
         // 3) LineRenderer
         var lineRenderer = CreateLine(absolutePoints, routeRoot.transform);
         instance.Line = lineRenderer;
-        
+
         yield return new WaitForEndOfFrame();
-        
+
         // 4) Info labels
         var showRouteNames = GetSetting<BoolSetting>("Show route names").Value;
         var showRouteAuthors = GetSetting<BoolSetting>("Show route authors").Value;
         var showRouteDescriptions = GetSetting<BoolSetting>("Show route descriptions").Value;
-        
+
         yield return new WaitForEndOfFrame();
-        
+
         if (instance.Info != null)
         {
             var routeEntryPoint = absolutePoints[0];
@@ -295,32 +349,32 @@ public class RoutePlayer : FeatureBase
                 nameAuthorText += $" (by {instance.Info.author})";
 
             var descriptionText = instance.Info.description;
-            
+
             if (showRouteNames)
             {
                 var routeNameAuthor = Object.Instantiate(_routeNameLabelPrefab, routeEntryPoint, Quaternion.identity,
                     _infoLabelsContainer);
                 routeNameAuthor.SetActive(true);
-                
-                
+
+
                 routeNameAuthor.AddComponent<RouteStateHandler>().Uid = instance.Info.uid;
                 var tmp = routeNameAuthor.GetComponent<TextMeshPro>();
                 tmp.text = nameAuthorText;
                 instance.InfoLabels.Add(routeNameAuthor);
             }
-            
+
             yield return new WaitForEndOfFrame();
-            
+
             if (showRouteDescriptions && !string.IsNullOrEmpty(instance.Info.description))
             {
                 var routeDescription = Object.Instantiate(_routeDescriptionLabelPrefab, routeEntryPoint,
                     Quaternion.identity,
                     _infoLabelsContainer);
                 routeDescription.SetActive(true);
-                
+
                 var tmp = routeDescription.GetComponent<TextMeshPro>();
                 tmp.text = descriptionText;
-                
+
                 tmp.ForceMeshUpdate();
                 var lines = tmp.textInfo.lineCount;
                 if (lines < 1) lines = 1;
@@ -344,12 +398,12 @@ public class RoutePlayer : FeatureBase
             noteLabel.gameObject.SetActive(true);
             instance.NoteLabels.Add(noteLabel.gameObject);
         }
-        
+
         yield return new WaitForEndOfFrame();
 
         // 6) Jump markers
         var markerSize = GetSetting<FloatSliderSetting>("JumpMarkers size").Value;
-        
+
         foreach (var index in routeData.jumpIndices)
         {
             if (index < 0 || index >= routeData.points.Count)
@@ -357,9 +411,9 @@ public class RoutePlayer : FeatureBase
 
             var localPoint = routeData.points[index];
             var absolutePos = Vectors.ConvertPointToAbsolute(localPoint);
-            
+
             var jumpMarker = Object.Instantiate(_markerPrefab, absolutePos, Quaternion.identity, routeRoot.transform);
-            
+
             jumpMarker.transform.localScale = Vector3.one * markerSize;
             jumpMarker.SetActive(true);
 
@@ -389,7 +443,7 @@ public class RoutePlayer : FeatureBase
         }
 
         var renderer = Object.Instantiate(_linePrefab, parent);
-        
+
         renderer.positionCount = absolutePoints.Count;
 
         if (absolutePoints is Vector3[] arr)
@@ -408,7 +462,7 @@ public class RoutePlayer : FeatureBase
 
         return renderer;
     }
-    
+
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
         if (ActiveRoutes.Count == 0 || _playerTransform == null || _isLoading)
