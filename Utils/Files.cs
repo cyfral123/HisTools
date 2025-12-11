@@ -23,7 +23,7 @@ public static class Files
             yield break;
         }
 
-        var routesDir = Path.Combine(Constants.Paths.RoutesConfigPath);
+        var routesDir = Path.Combine(Constants.Paths.RoutesPathDir);
         if (!Directory.Exists(routesDir))
         {
             Logger.Debug($"Routes directory not found: {routesDir}");

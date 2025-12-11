@@ -26,7 +26,7 @@ public static class Constants
 
         public static string ConfigDir => Path.Combine(BepInEx.Paths.BepInExRootPath, PluginName);
         public static string PluginDllDir => Path.GetDirectoryName(Plugin.Instance.Info.Location) ?? string.Empty;
-        public static string RoutesConfigPath => Path.Combine(ConfigDir, Routes);
+        public static string RoutesPathDir => Path.Combine(ConfigDir, Routes);
         public static string RoutesStateConfigFilePath => Path.Combine(ConfigDir, RoutesStateFile);
         public static string SettingsConfigPath => Path.Combine(ConfigDir, Settings);
         public static string FeaturesStateConfigFilePath => Path.Combine(ConfigDir, FeaturesStateFile);

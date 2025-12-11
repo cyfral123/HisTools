@@ -87,7 +87,7 @@ public class Plugin : BaseUnityPlugin
     private void CreateRequiredDirectories()
     {
         Directory.CreateDirectory(Constants.Paths.ConfigDir);
-        Directory.CreateDirectory(Constants.Paths.RoutesConfigPath);
+        Directory.CreateDirectory(Constants.Paths.RoutesPathDir);
         Directory.CreateDirectory(Constants.Paths.SettingsConfigPath);
         Directory.CreateDirectory(Constants.Paths.SpeedrunStatsDir);
     }
