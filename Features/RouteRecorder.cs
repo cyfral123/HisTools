@@ -28,6 +28,8 @@ public class RouteRecorder : FeatureBase
     private GameObject _markerPrefab;
     private Transform _player;
 
+    private GameObject _uiGuide;
+    
     private const string JumpButton = "Jump";
 
     public RouteRecorder() : base("RouteRecorder", "Record route for current level and save to json")
@@ -61,12 +63,11 @@ public class RouteRecorder : FeatureBase
         if (!_markerPrefab)
         {
             if (PrefabDatabase.Instance.GetObject("histools/SphereMarker", false)
-                .TryGet(out var prefab))
+                .TryGet(out var marker))
             {
-                var go = Object.Instantiate(prefab);
-                go.AddComponent<MarkerActivator>();
-                go.GetComponent<Renderer>().material.color = Color.cyan;
-                _markerPrefab = go;
+                _markerPrefab = Object.Instantiate(marker);
+                _markerPrefab.AddComponent<MarkerActivator>();
+                _markerPrefab.GetComponent<Renderer>().material.color = Color.cyan;
             }
         }
 
@@ -96,6 +97,15 @@ public class RouteRecorder : FeatureBase
         _lineRenderer.colorGradient = gradient;
 
         EventBus.Subscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
+
+        if (PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true)
+            .TryGet(out var guide))
+        {
+            _uiGuide = Object.Instantiate(guide, _player, true);
+            _uiGuide.transform.localPosition = new Vector3(0, 0, 0);
+            _uiGuide.transform.localRotation = Quaternion.identity;
+            _uiGuide.transform.localScale = Vector3.one;
+        }
     }
 
     public override void OnDisable()
@@ -198,7 +208,7 @@ public class RouteRecorder : FeatureBase
         _jumpMarkers.Clear();
         _points.Clear();
         _notes.Clear();
-
+        Object.Destroy(_uiGuide);
         EventBus.Unsubscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
     }
 
