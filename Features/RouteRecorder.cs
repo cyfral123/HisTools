@@ -22,20 +22,16 @@ public class RouteRecorder : FeatureBase
     private readonly List<NotePoint> _notes = [];
     private readonly List<GameObject> _jumpMarkers = [];
 
-    private readonly Material _defaultMaterial;
-
     private LineRenderer _lineRenderer;
     private GameObject _markerPrefab;
     private Transform _player;
 
     private GameObject _uiGuide;
-    
+
     private const string JumpButton = "Jump";
 
     public RouteRecorder() : base("RouteRecorder", "Record route for current level and save to json")
     {
-        _defaultMaterial = new Material(Shader.Find("Sprites/Default"));
-
         AddSettings();
     }
 
@@ -59,11 +55,10 @@ public class RouteRecorder : FeatureBase
         {
             _player = value;
         }
-        
+
         if (!_markerPrefab)
         {
-            if (PrefabDatabase.Instance.GetObject("histools/SphereMarker", false)
-                .TryGet(out var marker))
+            if (PrefabDatabase.Instance.GetObject("histools/SphereMarker", false).TryGet(out var marker))
             {
                 _markerPrefab = Object.Instantiate(marker);
                 _markerPrefab.AddComponent<MarkerActivator>();
@@ -78,7 +73,7 @@ public class RouteRecorder : FeatureBase
         var lineObj = new GameObject("HisTools_RecordedPath");
         _lineRenderer = lineObj.AddComponent<LineRenderer>();
         _lineRenderer.positionCount = 0;
-        _lineRenderer.material = _defaultMaterial;
+        _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
         _lineRenderer.widthMultiplier = GetSetting<FloatSliderSetting>("Preview line width").Value;
         _lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         _lineRenderer.receiveShadows = false;
@@ -98,13 +93,9 @@ public class RouteRecorder : FeatureBase
 
         EventBus.Subscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
 
-        if (PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true)
-            .TryGet(out var guide))
+        if (PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true).TryGet(out var guide))
         {
             _uiGuide = Object.Instantiate(guide, _player, true);
-            _uiGuide.transform.localPosition = new Vector3(0, 0, 0);
-            _uiGuide.transform.localRotation = Quaternion.identity;
-            _uiGuide.transform.localScale = Vector3.one;
         }
     }
 

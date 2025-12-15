@@ -10,10 +10,23 @@ using UnityEngine;
 
 namespace HisTools.Utils;
 
+/// <summary>
+/// Provides utility methods for file operations, JSON handling, and configuration management.
+/// </summary>
 public static class Files
 {
+    /// <summary>
+    /// Generates a new unique identifier as a string.
+    /// </summary>
+    /// <returns>A new unique identifier string.</returns>
     public static string GenerateUid() => Guid.NewGuid().ToString();
 
+    /// <summary>
+    /// Asynchronously retrieves all route files that match the specified target level.
+    /// </summary>
+    /// <param name="targetLevel">The target level to search for in route files.</param>
+    /// <param name="callback">Action that will be called with the list of matching file paths.</param>
+    /// <returns>An IEnumerator for coroutine support.</returns>
     public static IEnumerator GetRouteFilesByTargetLevel(string targetLevel, Action<List<string>> callback)
     {
         var result = new List<string>();
@@ -65,6 +78,10 @@ public static class Files
         callback(result);
     }
 
+    /// <summary>
+    /// Ensures that built-in routes are properly extracted and available in the route's directory.
+    /// Creates the built-in routes directory if it doesn't exist and extracts embedded resources.
+    /// </summary>
     public static void EnsureBuiltinRoutes()
     {
         var builtinRoutesDir = Path.Combine(Constants.Paths.RoutesPathDir, "Builtin_histools_routes");
@@ -127,6 +144,11 @@ public static class Files
         Logger.Debug("Builtin routes created");
     }
 
+    /// <summary>
+    /// Saves the active state of a route to the configuration.
+    /// </summary>
+    /// <param name="routeUid">The unique identifier of the route.</param>
+    /// <param name="isActive">The active state to save for the route.</param>
     public static void SaveRouteStateToConfig(string routeUid, bool isActive)
     {
         try
@@ -145,6 +167,12 @@ public static class Files
         }
     }
 
+    /// <summary>
+    /// Retrieves the active state of a route from the configuration.
+    /// </summary>
+    /// <param name="routeUid">The unique identifier of the route.</param>
+    /// <returns>An Option containing the route's active state if found, or None if not found.</returns>
+    public static Option<bool> GetRouteStateFromConfig(string routeUid)
     {
         try
         {
@@ -154,6 +182,7 @@ public static class Files
 
             if (json[routeUid] != null)
             {
+                return Option<bool>.Some(json[routeUid].ToObject<bool>());
             }
         }
         catch (Exception ex)
@@ -161,8 +190,15 @@ public static class Files
             Logger.Error($"Failed to load route state '{routeUid}': {ex.Message}");
         }
 
+        return Option<bool>.None();
     }
 
+    /// <summary>
+    /// Saves a setting value to the configuration for a specific feature.
+    /// </summary>
+    /// <param name="featureName">The name of the feature.</param>
+    /// <param name="settingName">The name of the setting to save.</param>
+    /// <param name="value">The value to save. If the value is a Color, it will be converted to HTML string format.</param>
     public static void SaveSettingToConfig(string featureName, string settingName, object value)
     {
         try
@@ -185,6 +221,14 @@ public static class Files
         }
     }
 
+    /// <summary>
+    /// Retrieves a setting value from the configuration for a specific feature.
+    /// </summary>
+    /// <typeparam name="T">The type of the setting value.</typeparam>
+    /// <param name="featureName">The name of the feature.</param>
+    /// <param name="settingName">The name of the setting to retrieve.</param>
+    /// <param name="defaultValue">The default value to return if the setting is not found.</param>
+    /// <returns>The setting value if found, otherwise the default value.</returns>
     public static T GetSettingFromConfig<T>(string featureName, string settingName, T defaultValue)
     {
         try
@@ -207,6 +251,11 @@ public static class Files
         return defaultValue;
     }
 
+    /// <summary>
+    /// Saves the enabled/disabled state of a feature to the configuration.
+    /// </summary>
+    /// <param name="featureName">The name of the feature.</param>
+    /// <param name="isEnabled">The enabled state to save for the feature.</param>
     public static void SaveFeatureStateToConfig(string featureName, bool isEnabled)
     {
         try
@@ -225,6 +274,11 @@ public static class Files
         }
     }
 
+    /// <summary>
+    /// Loads a JSON file from the specified path, attempting to repair it if corrupted.
+    /// </summary>
+    /// <param name="path">The path to the JSON file.</param>
+    /// <returns>A JObject containing the parsed JSON, or a new JObject if the file is empty or invalid.</returns>
     public static JObject LoadOrRepairJson(string path)
     {
         if (!File.Exists(path))
@@ -295,7 +349,7 @@ public static class Files
             return null;
         }
     }
-
+    
     private static void BackupCorrupt(string path)
     {
         try
@@ -310,16 +364,21 @@ public static class Files
         }
     }
 
-    private static void SaveJsonToFile(string path, JObject json)
+    /// <summary>
+    /// Saves a JToken as a JSON file with indented formatting.
+    /// </summary>
+    /// <param name="path">The path where to save the JSON file.</param>
+    /// <param name="json">The JToken to save.</param>
+    public static void SaveJsonToFile(string path, JToken json)
     {
         SaveToFile(path, json.ToString(Formatting.Indented));
     }
 
-    public static void SaveJsonToFile(string path, JArray json)
-    {
-        SaveToFile(path, json.ToString(Formatting.Indented));
-    }
-
+    /// <summary>
+    /// Saves a JSON string to a file.
+    /// </summary>
+    /// <param name="path">The path where to save the JSON file.</param>
+    /// <param name="json">The JSON string to save.</param>
     public static void SaveJsonToFile(string path, string json)
     {
         SaveToFile(path, json);
@@ -337,6 +396,11 @@ public static class Files
         }
     }
 
+    /// <summary>
+    /// Ensures that a directory exists at the specified path, creating it if necessary.
+    /// </summary>
+    /// <param name="path">The path of the directory to ensure exists.</param>
+    /// <returns>An Option containing the DirectoryInfo if successful, or None if the directory could not be created.</returns>
     public static Option<DirectoryInfo> EnsureDirectory(string path)
     {
         if (Directory.Exists(path))
@@ -354,6 +418,12 @@ public static class Files
         }
     }
 
+    /// <summary>
+    /// Retrieves the names of files in the specified directory.
+    /// </summary>
+    /// <param name="path">The directory to search.</param>
+    /// <param name="searchPattern">The search string to match against the names of files in path. The parameter cannot end in two periods (..) or contain invalid characters.</param>
+    /// <returns>An Option containing an array of file names if successful, or None if an error occurs.</returns>
     public static Option<string[]> GetFiles(string path, string searchPattern = null)
     {
         try

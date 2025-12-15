@@ -279,7 +279,7 @@ public class RoutePlayer : FeatureBase
         {
             Utils.Logger.Warn("RoutePlayer: Intro level, skipping");
             ShowIntroGuides();
-                
+
             yield break;
         }
 
@@ -422,10 +422,16 @@ public class RoutePlayer : FeatureBase
 
         ActiveRoutes[instance.Info.uid] = instance;
 
-        var savedState = Files.GetRouteStateFromConfig(instance.Info.uid);
-        var routeState = savedState.GetValueOrDefault(true);
-        Utils.Logger.Debug($"Restored route '{instance.Info.uid}' state: active={routeState}");
-        EventBus.Publish(new ToggleRouteEvent(instance.Info.uid, routeState));
+        // 7) Restore route state
+        if (Files.GetRouteStateFromConfig(instance.Info.uid).TryGet(out var routeState))
+        {
+            Utils.Logger.Debug($"Restored route '{instance.Info.uid}' state: active={routeState}");
+            EventBus.Publish(new ToggleRouteEvent(instance.Info.uid, routeState));
+        }
+        else
+        {
+            Utils.Logger.Debug($"No saved state for route '{instance.Info.uid}'");
+        }
 
 
         Utils.Logger.Info(
