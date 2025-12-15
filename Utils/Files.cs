@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -30,7 +31,7 @@ public static class Files
             yield break;
         }
 
-        var jsonFiles = Directory.GetFiles(routesDir, "*.json", SearchOption.AllDirectories);
+        var jsonFiles = Directory.GetFiles(routesDir, "*", SearchOption.AllDirectories);
 
         foreach (var file in jsonFiles)
         {
@@ -64,6 +65,68 @@ public static class Files
         callback(result);
     }
 
+    public static void EnsureBuiltinRoutes()
+    {
+        var builtinRoutesDir = Path.Combine(Constants.Paths.RoutesPathDir, "Builtin_histools_routes");
+        if (Directory.Exists(builtinRoutesDir))
+        {
+            Logger.Debug("Builtin routes directory exists");
+            return;
+        }
+
+        Logger.Debug("Builtin routes does not exist, creating it");
+
+        try
+        {
+            var result = new Dictionary<string, List<(string FileName, string Content)>>();
+
+            var asm = Assembly.GetExecutingAssembly();
+            var asmName = asm.GetName().Name;
+
+            foreach (var res in asm.GetManifestResourceNames().Where(r => r.EndsWith(".json")))
+            {
+                var firstDot = res.IndexOf('.', asmName.Length + 1);
+                var relative = res[(firstDot + 1)..];
+
+                var parts = relative.Split('.');
+
+                var folder = Path.Combine(parts[..^1]);
+                var fileName = parts[^1];
+
+                using var stream = asm.GetManifestResourceStream(res)!;
+                using var reader = new StreamReader(stream);
+                var json = reader.ReadToEnd();
+
+                if (!result.TryGetValue(folder, out var list))
+                {
+                    list = [];
+                    result[folder] = list;
+                }
+
+                list.Add((fileName, json));
+            }
+
+            foreach (var (folder, files) in result)
+            {
+                var dir = Path.Combine(builtinRoutesDir, folder);
+                Directory.CreateDirectory(dir);
+
+                foreach (var (fileName, content) in files)
+                {
+                    var filePath = Path.Combine(dir, fileName);
+                    SaveJsonToFile(filePath, content);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error($"Failed to create builtin routes: {ex.Message}");
+            return;
+        }
+
+        Logger.Debug("Builtin routes created");
+    }
+
     public static void SaveRouteStateToConfig(string routeUid, bool isActive)
     {
         try
@@ -82,7 +145,6 @@ public static class Files
         }
     }
 
-    public static bool? GetRouteStateFromConfig(string routeUid)
     {
         try
         {
@@ -92,7 +154,6 @@ public static class Files
 
             if (json[routeUid] != null)
             {
-                return json[routeUid].ToObject<bool>();
             }
         }
         catch (Exception ex)
@@ -100,7 +161,6 @@ public static class Files
             Logger.Error($"Failed to load route state '{routeUid}': {ex.Message}");
         }
 
-        return null;
     }
 
     public static void SaveSettingToConfig(string featureName, string settingName, object value)
@@ -258,6 +318,11 @@ public static class Files
     public static void SaveJsonToFile(string path, JArray json)
     {
         SaveToFile(path, json.ToString(Formatting.Indented));
+    }
+
+    public static void SaveJsonToFile(string path, string json)
+    {
+        SaveToFile(path, json);
     }
 
     private static void SaveToFile(string path, string content)
