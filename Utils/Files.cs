@@ -182,7 +182,7 @@ public static class Files
 
             if (json[routeUid] != null)
             {
-                return Option<bool>.Some(json[routeUid].ToObject<bool>());
+                return Option.Some(json[routeUid].ToObject<bool>());
             }
         }
         catch (Exception ex)
@@ -404,12 +404,12 @@ public static class Files
     public static Option<DirectoryInfo> EnsureDirectory(string path)
     {
         if (Directory.Exists(path))
-            return Option<DirectoryInfo>.Some(new DirectoryInfo(path));
+            return Option.Some(new DirectoryInfo(path));
 
         try
         {
             var dirInfo = Directory.CreateDirectory(path);
-            return Option<DirectoryInfo>.Some(dirInfo);
+            return Option.Some(dirInfo);
         }
         catch (Exception ex)
         {
@@ -430,7 +430,7 @@ public static class Files
         {
             var files = searchPattern == null ? Directory.GetFiles(path) : Directory.GetFiles(path, searchPattern);
 
-            return Option<string[]>.Some(files);
+            return Option.Some(files);
         }
         catch (Exception ex)
         {

@@ -29,7 +29,7 @@ public class SettingsPanelController : MonoBehaviour
             }
         }
 
-        Instance = Option<SettingsPanelController>.Some(this);
+        Instance = Option.Some(this);
 
         var parentCanvas = FeaturesMenu.Canvas;
         if (!parentCanvas)

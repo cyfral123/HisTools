@@ -19,11 +19,11 @@ namespace HisTools.Prefabs
         public Option<Texture2D> GetTexture(string spriteName)
         {
             var result = _loadedAssets.TryGetValue(spriteName, out var cachedAsset)
-                ? Option<Texture2D>.Some((Texture2D)cachedAsset)
+                ? Option.Some((Texture2D)cachedAsset)
                 : Option<Texture2D>.None();
 
             if (result.TryGet(out var sprite))
-                return Option<Texture2D>.Some(sprite);
+                return Option.Some(sprite);
 
             Utils.Logger.Error($"PrefabDatabase: Sprite {spriteName} not found");
             return result;
@@ -32,13 +32,13 @@ namespace HisTools.Prefabs
         public Option<GameObject> GetObject(string prefabName, bool active)
         {
             var result = _loadedAssets.TryGetValue(prefabName, out var cachedAsset)
-                ? Option<GameObject>.Some((GameObject)cachedAsset)
+                ? Option.Some((GameObject)cachedAsset)
                 : Option<GameObject>.None();
 
             if (result.TryGet(out var prefab))
             {
                 prefab.SetActive(active);
-                return Option<GameObject>.Some(prefab);
+                return Option.Some(prefab);
             }
 
             Utils.Logger.Error($"PrefabDatabase: Prefab {prefabName} not found");
@@ -48,7 +48,7 @@ namespace HisTools.Prefabs
         public Option<AssetBundle> LoadBundle(string bundleName)
         {
             if (_loadedBundles.TryGetValue(bundleName, out var bundle))
-                return Option<AssetBundle>.Some(bundle);
+                return Option.Some(bundle);
 
             var bundlePath = Path.Combine(Constants.Paths.PluginDllDir, "Assets", bundleName);
 
@@ -67,7 +67,7 @@ namespace HisTools.Prefabs
                 return Option<AssetBundle>.None();
 
             _loadedBundles[bundleName] = bundle;
-            return Option<AssetBundle>.Some(bundle);
+            return Option.Some(bundle);
         }
 
 
@@ -76,7 +76,7 @@ namespace HisTools.Prefabs
             var cacheKey = $"{bundleName}/{assetName}";
 
             if (_loadedAssets.TryGetValue(cacheKey, out var cachedAsset))
-                return Option<T>.Some((T)cachedAsset);
+                return Option.Some((T)cachedAsset);
 
             var bundleOpt = LoadBundle(bundleName);
 
@@ -90,7 +90,7 @@ namespace HisTools.Prefabs
 
             _loadedAssets[cacheKey] = asset;
 
-            return Option<T>.Some(asset);
+            return Option.Some(asset);
         }
     }
 }

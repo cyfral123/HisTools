@@ -76,11 +76,9 @@ public readonly struct Option<T>
 
 public static class Option
 {
-    public static Option<T> Some<T>(T value) =>
-        Option<T>.Some(value);
+    public static Option<T> Some<T>(T value) => Option<T>.Some(value);
 
-    public static Option<T> None<T>() =>
-        Option<T>.None();
+    public static Option<T> None<T>() => Option<T>.None();
 
     public static Option<T> FromNullable<T>(T? value) where T : class => value is null ? None<T>() : Some(value);
 }

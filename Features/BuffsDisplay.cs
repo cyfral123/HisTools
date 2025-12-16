@@ -50,7 +50,7 @@ public class BuffsDisplay : FeatureBase
         if (icons.Length == 0 || !value || !time || !transform)
             return Option<BuffIndicator>.None();
 
-        return Option<BuffIndicator>.Some(new BuffIndicator
+        return Option.Some(new BuffIndicator
             { Transform = transform, Icons = icons, Value = value, Time = time });
     }
 
