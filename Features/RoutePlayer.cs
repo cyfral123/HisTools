@@ -80,16 +80,6 @@ public class RoutePlayer : FeatureBase
         CreatePrefabsIfNeeded();
     }
 
-    private void EnsurePlayer()
-    {
-        if (_playerTransform) return;
-
-        if (Player.GetTransform().TryGet(out var value))
-        {
-            _playerTransform = value;
-        }
-    }
-
     private void CreatePrefabsIfNeeded()
     {
         if (!_playerTransform)
@@ -221,8 +211,8 @@ public class RoutePlayer : FeatureBase
 
     private void DrawRoutes(M_Level level)
     {
+        _playerTransform ??= Player.GetTransform().UnwrapOr(null);
         ClearRoutes();
-        EnsurePlayer();
         EnsurePrefabs();
 
         CoroutineRunner.Instance.StartCoroutine(ProcessRoutes(level));

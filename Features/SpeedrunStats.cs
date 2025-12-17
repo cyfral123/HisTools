@@ -69,22 +69,33 @@ public class SpeedrunStats : FeatureBase
         if (_statsCanvas) Object.Destroy(_statsCanvas.gameObject);
     }
 
-    private void EnsurePlayer()
-    {
-        if (_playerTransform) return;
-        if (Player.GetTransform().TryGet(out var value)) _playerTransform = value;
-    }
-
     private void EnsureUI()
     {
         if (_statsCanvas && _prevText) return;
-        if (!PrefabDatabase.Instance.GetObject("histools/UI_Speedrun", false).TryGet(out var prefab)) return;
+        var prefab = PrefabDatabase.Instance.GetObject("histools/UI_Speedrun", false).Match(
+            go => go,
+            () =>
+            {
+                Utils.Logger.Warn("SpeedrunStats: UI prefab is missing");
+                return null;
+            }
+        );
+
+        if (!prefab) return;
 
         var go = Object.Instantiate(prefab);
 
         _statsCanvas = go.GetComponent<Canvas>();
 
         var texts = _statsCanvas.GetComponentsInChildren<TextMeshProUGUI>(true);
+
+        if (texts.Length < 2)
+        {
+            Utils.Logger.Warn("SpeedrunStats: UI prefab is missing texts");
+            _statsCanvas = null;
+            Object.Destroy(go);
+            return;
+        }
 
         _prevText = texts[0];
         _currText = texts[1];
@@ -95,11 +106,13 @@ public class SpeedrunStats : FeatureBase
 
     private bool ShouldUpdate()
     {
-        return CL_EventManager.currentLevel ? _currLevel.Instance : false;
+        return CL_EventManager.currentLevel && _currLevel.Instance;
     }
 
     private TimeSpan PredictElapsedTime(M_Level level, TimeSpan currentElapsed)
     {
+        if (currentElapsed.TotalSeconds <= 0) return currentElapsed;
+
         var levelHeight = level.GetLength();
         var traveledHeight = Vectors.ConvertPointToLocal(_playerTransform.position).y;
         var currentSpeed = traveledHeight / currentElapsed.TotalSeconds;
@@ -113,8 +126,9 @@ public class SpeedrunStats : FeatureBase
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
         if (!ShouldUpdate()) return;
-        EnsurePlayer();
+        _playerTransform ??= Player.GetTransform().UnwrapOr(null);
         EnsureUI();
+        if (!_statsCanvas) return;
 
         if (_showOnlyInPause.Value && !CL_GameManager.gMan.isPaused)
             _statsCanvas.gameObject.SetActive(false);

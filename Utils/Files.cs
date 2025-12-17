@@ -349,7 +349,7 @@ public static class Files
             return null;
         }
     }
-    
+
     private static void BackupCorrupt(string path)
     {
         try
@@ -437,5 +437,21 @@ public static class Files
             Logger.Error($"Failed to get files from path '{path}': {ex.Message}");
             return Option<string[]>.None();
         }
+    }
+
+    public static string GetNextFilePath(string folderPath, string baseFileName, string extension)
+    {
+        var filePath = Path.Combine(folderPath, $"{baseFileName}.{extension}");
+        var counter = 2;
+
+        while (File.Exists(filePath))
+        {
+            filePath = Path.Combine(
+                folderPath,
+                $"{baseFileName}_{counter:D2}.{extension}");
+            counter++;
+        }
+
+        return filePath;
     }
 }

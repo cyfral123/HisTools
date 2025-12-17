@@ -24,7 +24,7 @@ public class RouteRecorder : FeatureBase
 
     private LineRenderer _lineRenderer;
     private GameObject _markerPrefab;
-    private Transform _player;
+    private Transform _playerTransform;
 
     private GameObject _uiGuide;
 
@@ -51,11 +51,8 @@ public class RouteRecorder : FeatureBase
 
     public override void OnEnable()
     {
-        if (Player.GetTransform().TryGet(out var value))
-        {
-            _player = value;
-        }
-
+        _playerTransform ??= Player.GetTransform().UnwrapOr(null);
+        
         if (!_markerPrefab)
         {
             if (PrefabDatabase.Instance.GetObject("histools/SphereMarker", false).TryGet(out var marker))
@@ -95,7 +92,7 @@ public class RouteRecorder : FeatureBase
 
         if (PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true).TryGet(out var guide))
         {
-            _uiGuide = Object.Instantiate(guide, _player, true);
+            _uiGuide = Object.Instantiate(guide, _playerTransform, true);
         }
     }
 
@@ -107,26 +104,9 @@ public class RouteRecorder : FeatureBase
             if (!Directory.Exists(folderPath))
                 Directory.CreateDirectory(folderPath);
 
-            var author = "unknownAuthor";
-            if (SteamClient.IsValid)
-            {
-                author = SteamClient.Name;
-            }
-
-            var levelName = CL_EventManager.currentLevel.levelName;
-            if (string.IsNullOrEmpty(levelName))
-                levelName = "unknownLevel";
-
-            var baseFileName = $"route_{levelName}_by_{author}";
-            var filePath = Path.Combine(folderPath, baseFileName + ".json");
-
-            var counter = 2;
-            while (File.Exists(filePath))
-            {
-                filePath = Path.Combine(folderPath, $"{baseFileName}_{counter:D2}.json");
-                counter++;
-            }
-
+            var authorName = SteamClient.IsValid ? SteamClient.Name : "unknownAuthor";
+            var levelName = Level.GetCurrent().Map(level => level.levelName).UnwrapOr("unknownLevel");
+            var filePath = Files.GetNextFilePath(folderPath, $"route_{levelName}_by_{authorName}", "json");
             var resultFileName = Path.GetFileNameWithoutExtension(filePath);
 
             var quality = GetSetting<FloatSliderSetting>("Record quality");
@@ -213,8 +193,8 @@ public class RouteRecorder : FeatureBase
     private void OnPlayerLateUpdate(PlayerLateUpdateEvent e)
     {
         var level = CL_EventManager.currentLevel;
-        if (!_player || !level) return;
-        var playerPos = level.transform.InverseTransformPoint(_player.position);
+        if (!_playerTransform || !level) return;
+        var playerPos = level.transform.InverseTransformPoint(_playerTransform.position);
         var distanceToStop = GetSetting<FloatSliderSetting>("Auto stop distance").Value;
         var jumped = InputManager.GetButton(JumpButton).Down;
         var quality = GetSetting<FloatSliderSetting>("Record quality");
@@ -238,7 +218,7 @@ public class RouteRecorder : FeatureBase
 
         if (GetSetting<BoolSetting>("Auto stop").Value)
         {
-            if (_player.position.DistanceTo(level.GetLevelExit().position) < distanceToStop)
+            if (_playerTransform.position.DistanceTo(level.GetLevelExit().position) < distanceToStop)
                 CoroutineRunner.Instance.StartCoroutine(DelayedStop());
         }
     }

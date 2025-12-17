@@ -26,6 +26,8 @@ public readonly struct Option<T>
 
     public T Unwrap() => IsSome ? _value : throw new InvalidOperationException("Called Unwrap on None option");
 
+    public T UnwrapOr(T defaultValue) => IsSome ? _value : defaultValue;
+    
     public bool TryGet(out T value)
     {
         if (IsSome)
@@ -71,6 +73,18 @@ public readonly struct Option<T>
 
         if (IsSome) some(_value);
         else none();
+    }
+    
+    public Option<T> IfSome(Action<T> action)
+    {
+        if (IsSome) action(_value);
+        return this;
+    }
+    
+    public Option<T> IfNone(Action action)
+    {
+        if (IsNone) action();
+        return this;
     }
 }
 

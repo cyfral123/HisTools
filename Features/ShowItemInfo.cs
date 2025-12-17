@@ -21,22 +21,13 @@ public class ShowItemInfo : FeatureBase
         AddSetting(new FloatSliderSetting(this, "Label size", "...", 0.5f, 0.1f, 2f, 0.05f, 2));
         AddSetting(new ColorSetting(this, "Label color", "...", Color.gray));
     }
-    
-    private void EnsurePlayer()
-    {
-        if (_playerTransform) return;
-
-        if (Player.GetTransform().TryGet(out var value))
-        {
-            _playerTransform = value;
-        }
-    }
 
     private void EnsurePrefabs()
     {
-        EnsurePlayer();
+        if (_playerTransform) return;
+        _playerTransform ??= Player.GetTransform().UnwrapOr(null);
         if (_itemInfoPrefab != null) return;
-        
+
         _itemInfoPrefab = new GameObject($"HisTools_ItemInfo_Prefab");
         var tmp = _itemInfoPrefab.AddComponent<TextMeshPro>();
         tmp.text = "ItemInfo";
@@ -69,7 +60,8 @@ public class ShowItemInfo : FeatureBase
             var spawnChance = entity.GetComponent<UT_SpawnChance>();
             if (!spawnChance || spawnChance.spawnSettings == null) continue;
 
-            var label = Object.Instantiate(_itemInfoPrefab, entity.transform.position + Vector3.up * 0.5f, Quaternion.identity);
+            var label = Object.Instantiate(_itemInfoPrefab, entity.transform.position + Vector3.up * 0.5f,
+                Quaternion.identity);
             var tmp = label.GetComponent<TextMeshPro>();
             var finalText = new StringBuilder();
 
@@ -79,7 +71,7 @@ public class ShowItemInfo : FeatureBase
                 finalText.Append(entity.name).Append(" - ");
             if (GetSetting<BoolSetting>("Spawn chance").Value)
                 finalText.Append(spawnChance.spawnSettings.GetEffectiveSpawnChance() * 100f).Append("%");
-                    
+
             tmp.fontSize = GetSetting<FloatSliderSetting>("Label size").Value;
             tmp.text = finalText.ToString();
             label.SetActive(true);

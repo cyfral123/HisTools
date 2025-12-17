@@ -47,17 +47,6 @@ public class DebugInfo : FeatureBase
         AddSetting(new BoolSetting(this, "In level pos", "Show player position relative to level", true));
     }
 
-
-    private void EnsurePlayer()
-    {
-        if (_playerTransform) return;
-
-        if (Utils.Player.GetTransform().TryGet(out var value))
-        {
-            _playerTransform = value;
-        }
-    }
-
     public override void OnEnable()
     {
         EventBus.Subscribe<WorldUpdateEvent>(OnWorldUpdate);
@@ -84,9 +73,8 @@ public class DebugInfo : FeatureBase
     {
         var level = CL_EventManager.currentLevel;
 
-        if (!level)
-            return;
-        EnsurePlayer();
+        if (!level) return;
+        _playerTransform ??= Utils.Player.GetTransform().UnwrapOr(null);
         EnsurePrefab();
 
         _uiCanvas.gameObject.SetActive(true);
