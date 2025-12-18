@@ -126,7 +126,7 @@ public class SpeedrunStats : FeatureBase
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
         if (!ShouldUpdate()) return;
-        _playerTransform ??= Player.GetTransform().UnwrapOr(null);
+        Player.GetTransform().IfSome(t => _playerTransform = t);
         EnsureUI();
         if (!_statsCanvas) return;
 

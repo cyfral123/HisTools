@@ -6,75 +6,58 @@ using UnityEngine;
 namespace HisTools.Utils.RouteFeature;
 
 [Serializable]
-public class Vector3Serializable
+public struct Vec3Dto
 {
-    public float x, y, z;
-    public bool jump;
+    public float x;
+    public float y;
+    public float z;
 
-    public Vector3Serializable() { }
-
-    public Vector3Serializable(Vector3 v, bool jump = false)
+    public static Vec3Dto From(Vector3 v, int precision = 2) => new()
     {
-        x = v.x; y = v.y; z = v.z;
-        this.jump = jump;
-    }
-
-    public Vector3 ToVector3() => new(x, y, z);
+        x = (float)Math.Round(v.x, precision),
+        y = (float)Math.Round(v.y, precision),
+        z = (float)Math.Round(v.z, precision)
+    };
 }
 
 [Serializable]
-public class NotePoint
+public class RoutePointDto
 {
-    public float x, y, z;
-    public string note;
-
-    [JsonIgnore]
-    public Vector3 Position => new(x, y, z);
-
-    public NotePoint() { }
-
-    public NotePoint(Vector3 pos, string text)
-    {
-        x = pos.x;
-        y = pos.y;
-        z = pos.z;
-        note = text;
-    }
+    public Vec3Dto position;
 }
 
 [Serializable]
-public class PathPoint
+public class RouteNoteDto
 {
-    public float x, y, z;
-    public bool jump;
-
-    [JsonIgnore]
-    public Vector3 Position => new(x, y, z);
-
-    public PathPoint() { }
-
-    public PathPoint(Vector3 pos, bool isJump = false)
-    {
-        x = pos.x;
-        y = pos.y;
-        z = pos.z;
-        jump = isJump;
-    }
+    public Vec3Dto position;
+    public string text;
 }
 
+
+public class Note(Vector3 position, string text)
+{
+    public Vector3 Position { get; } = position;
+    public string Text { get; } = text;
+}
+
+[Serializable]
+public class PathPoint(Vector3 position)
+{
+    public Vector3 Position { get; } = position;
+}
 
 [Serializable]
 public class RouteInfo
 {
-    public string uid;
-    public string name;
-    public string author;
-    public string description;
-    public string targetLevel;
+    public string uid { get; set; }
+    public string name { get; set; }
+    public string author { get; set; }
+    public string description { get; set; }
+    public string targetLevel { get; set; }
 
-    [JsonIgnore] public Color CompletedColor = Color.clear;
-    [JsonIgnore] public Color RemainingColor = Color.clear;
-    [JsonIgnore] public Color TextColor = Color.clear;
+    [JsonIgnore] public Color CompletedColor { get; private set; } = Color.clear;
+    [JsonIgnore] public Color RemainingColor { get; private set; } = Color.clear;
+    [JsonIgnore] public Color TextColor { get; private set; } = Color.clear;
 
     [JsonProperty("preferredCompletedColor")]
     public string CompletedColorHex
@@ -98,13 +81,14 @@ public class RouteInfo
     }
 }
 
+
 [Serializable]
 public class RouteData
 {
-    public OnlyForDebug onlyForDebug;
     public RouteInfo info;
-    public List<Vector3Serializable> points;
-    public List<NotePoint> notes;
+    public List<Vec3Dto> points;
+    public List<int> jumpIndices;
+    public List<RouteNoteDto> notes;
 }
 
 public class RouteInstance
@@ -124,16 +108,9 @@ public class RouteInstance
 
 public class RouteSet
 {
-    public RouteInfo info;
+    public RouteInfo Info;
 
-    public List<Vector3> points = [];
-    public HashSet<int> jumpIndices = [];
-    public List<NotePoint> notes = [];
-}
-
-
-[Serializable]
-public class OnlyForDebug
-{
-    public float minDistanceBetweenPoints;
+    public List<Vector3> Points = [];
+    public HashSet<int> JumpIndices = [];
+    public List<Note> Notes = [];
 }

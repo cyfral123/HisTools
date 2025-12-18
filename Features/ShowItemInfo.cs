@@ -25,7 +25,7 @@ public class ShowItemInfo : FeatureBase
     private void EnsurePrefabs()
     {
         if (_playerTransform) return;
-        _playerTransform ??= Player.GetTransform().UnwrapOr(null);
+        Player.GetTransform().IfSome(t => _playerTransform = t);
         if (_itemInfoPrefab != null) return;
 
         _itemInfoPrefab = new GameObject($"HisTools_ItemInfo_Prefab");

@@ -18,8 +18,9 @@ namespace HisTools.Features;
 
 public class RouteRecorder : FeatureBase
 {
-    private readonly List<PathPoint> _points = [];
-    private readonly List<NotePoint> _notes = [];
+    private readonly List<Vector3> _points = [];
+    private readonly HashSet<int> _jumpIndices = [];
+    private readonly List<Note> _notes = [];
     private readonly List<GameObject> _jumpMarkers = [];
 
     private LineRenderer _lineRenderer;
@@ -51,7 +52,7 @@ public class RouteRecorder : FeatureBase
 
     public override void OnEnable()
     {
-        _playerTransform ??= Player.GetTransform().UnwrapOr(null);
+        Player.GetTransform().IfSome(t => _playerTransform = t);
         
         if (!_markerPrefab)
         {
@@ -64,6 +65,7 @@ public class RouteRecorder : FeatureBase
         }
 
         _points.Clear();
+        _jumpIndices.Clear();
         _jumpMarkers.Clear();
         _notes.Clear();
 
@@ -98,88 +100,86 @@ public class RouteRecorder : FeatureBase
 
     public override void OnDisable()
     {
-        if (_points.Count > 5)
-        {
-            var folderPath = Path.Combine(Constants.Paths.ConfigDir, "Routes");
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
-
-            var authorName = SteamClient.IsValid ? SteamClient.Name : "unknownAuthor";
-            var levelName = Level.GetCurrent().Map(level => level.levelName).UnwrapOr("unknownLevel");
-            var filePath = Files.GetNextFilePath(folderPath, $"route_{levelName}_by_{authorName}", "json");
-            var resultFileName = Path.GetFileNameWithoutExtension(filePath);
-
-            var quality = GetSetting<FloatSliderSetting>("Record quality");
-            var pathData = new
-            {
-                onlyForDebug = new
-                {
-                    minDistanceBetweenPoints =
-                        Math.Round(math.remap(quality.Min, quality.Max, quality.Max, quality.Min, quality.Value), 2),
-                },
-                info = new
-                {
-                    // template
-                    uid = Files.GenerateUid(),
-                    name = $"unnamed_{levelName}",
-                    author = SteamClient.Name,
-                    description =
-                        $"Recorded on {DateTime.Now} \nEdit this route in json:\n..\\BepInEx\\HisTools\\Routes\\{resultFileName}.json",
-                    preferredCompleteColor = "#00000000",
-                    preferredRemainingColor = "#00000000",
-                    preferredNoteColor = "#00000000",
-                    targetLevel = levelName
-                },
-                points = _points.Select(p => new
-                {
-                    x = Math.Round(p.x, 2),
-                    y = Math.Round(p.y, 2),
-                    z = Math.Round(p.z, 2),
-                    jump = p.jump
-                }),
-                notes = _notes.Select(n => new
-                {
-                    x = Math.Round(n.Position.x, 2),
-                    y = Math.Round(n.Position.y, 2),
-                    z = Math.Round(n.Position.z, 2),
-                    note = n.note
-                }),
-            };
-
-            var json = JsonConvert.SerializeObject(new[] { pathData }, Formatting.Indented);
-
-            if (!Directory.Exists(folderPath))
-            {
-                Directory.CreateDirectory(folderPath);
-            }
-
-            try
-            {
-                File.WriteAllText(filePath, json);
-                Utils.Logger.Info($"RecordPath: JSON saved to {filePath}");
-            }
-            catch (Exception ex)
-            {
-                Utils.Logger.Error($"RecordPath: Failed to write JSON to file: {ex.Message}");
-            }
-        }
-        else
+        if (_points.Count <= 5)
         {
             Utils.Logger.Info("RecordPath: No points recorded");
+            Cleanup();
+            return;
         }
 
-        if (_lineRenderer != null)
+        var folderPath = Path.Combine(Constants.Paths.ConfigDir, "Routes");
+        Directory.CreateDirectory(folderPath);
+
+        var authorName = SteamClient.IsValid ? SteamClient.Name : "unknownAuthor";
+        var levelName = Level.GetCurrent()
+            .Map(l => l.levelName)
+            .UnwrapOr("unknownLevel");
+
+        var filePath = Files.GetNextFilePath(
+            folderPath,
+            $"route_{levelName}_by_{authorName}",
+            "json");
+
+        var resultFileName = Path.GetFileNameWithoutExtension(filePath);
+
+        var quality = GetSetting<FloatSliderSetting>("Record quality");
+        var minDistance = Math.Round(
+            math.remap(quality.Min, quality.Max, quality.Max, quality.Min, quality.Value), 2);
+
+        var routeInfo = new RouteInfo
+        {
+            uid = Files.GenerateUid(),
+            name = $"unnamed_{levelName}",
+            author = SteamClient.Name,
+            description =
+                $"Recorded on {DateTime.Now}\nEdit this route in json:\n..\\BepInEx\\HisTools\\Routes\\{resultFileName}.json",
+            targetLevel = levelName
+        };
+
+        var routeDto = RouteMapper.ToDto(
+            _points,
+            _jumpIndices,
+            _notes,
+            routeInfo,
+            (float)minDistance);
+
+
+        var json = JsonConvert.SerializeObject(
+            new[] { routeDto },
+            Formatting.Indented);
+
+        try
+        {
+            File.WriteAllText(filePath, json);
+            Utils.Logger.Info($"RecordPath: JSON saved to {filePath}");
+        }
+        catch (Exception ex)
+        {
+            Utils.Logger.Error($"RecordPath: Failed to write JSON: {ex.Message}");
+        }
+
+        Cleanup();
+    }
+
+    private void Cleanup()
+    {
+        if (_lineRenderer)
         {
             Object.Destroy(_lineRenderer.gameObject);
             _lineRenderer = null;
         }
 
-        foreach (var marker in _jumpMarkers.Where(marker => marker))
+        foreach (var marker in _jumpMarkers.Where(m => m))
             Object.Destroy(marker);
+
         _jumpMarkers.Clear();
         _points.Clear();
         _notes.Clear();
-        Object.Destroy(_uiGuide);
+        _jumpIndices.Clear();
+
+        if (_uiGuide)
+            Object.Destroy(_uiGuide);
+
         EventBus.Unsubscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
     }
 
@@ -200,7 +200,7 @@ public class RouteRecorder : FeatureBase
         var quality = GetSetting<FloatSliderSetting>("Record quality");
         // invert slider, because minimum distance is maximum quality
         var minDistance = Math.Round(math.remap(quality.Min, quality.Max, quality.Max, quality.Min, quality.Value), 2);
-        if (_points.Count == 0 || Vector3.Distance(_points.Last().Position, playerPos) >= minDistance || jumped)
+        if (_points.Count == 0 || Vector3.Distance(_points.Last(), playerPos) >= minDistance || jumped)
         {
             AddPoint(playerPos, jumped);
         }
@@ -211,7 +211,7 @@ public class RouteRecorder : FeatureBase
             {
                 var pos = Raycast.GetLookTarget(Camera.main.transform, 100f);
                 const string noteText = "YourNote";
-                _notes.Add(new NotePoint(pos, noteText));
+                _notes.Add(new Note(pos, noteText));
                 Utils.Logger.Info($"RecordPath: Added note at {pos}: {noteText}");
             }
         }
@@ -223,34 +223,49 @@ public class RouteRecorder : FeatureBase
         }
     }
 
-    private void AddPoint(Vector3 pos, bool jumped)
+    private void AddPoint(Vector3 localPos, bool isJumped)
     {
-        var point = new PathPoint(pos, jumped);
-        _points.Add(point);
+        var index = _points.Count;
+        _points.Add(localPos);
 
-        if (jumped)
+        if (isJumped)
         {
-            var marker = Object.Instantiate(_markerPrefab);
-            marker.SetActive(true);
-            var worldPos = CL_EventManager.currentLevel.transform.TransformPoint(pos);
-            marker.transform.position = worldPos + Vector3.up * 0.1f;
-            marker.transform.localScale = Vector3.one * GetSetting<FloatSliderSetting>("Preview markers size").Value;
-
-            _jumpMarkers.Add(marker);
+            _jumpIndices.Add(index);
+            SpawnJumpMarker(localPos);
         }
 
         UpdateLineRenderer();
     }
 
+    private void SpawnJumpMarker(Vector3 localPos)
+    {
+        if (!_markerPrefab)
+            return;
+
+        var marker = Object.Instantiate(_markerPrefab);
+
+        var levelTransformOpt = Level.GetCurrentTransform();
+        var worldPos = levelTransformOpt
+            .Map(t => t.TransformPoint(localPos))
+            .UnwrapOr(localPos);
+
+        marker.transform.position =
+            worldPos + Vector3.up * 0.1f;
+
+        marker.transform.localScale =
+            Vector3.one * GetSetting<FloatSliderSetting>("Preview markers size").Value;
+
+        marker.SetActive(true);
+        _jumpMarkers.Add(marker);
+    }
+
+
     private void UpdateLineRenderer()
     {
         if (_lineRenderer == null || _points.Count < 2) return;
 
-        var smoothed = SmoothUtil.Points(_points.Select(p => p.Position).ToList(), 3);
-
-        var smoothedWorld = smoothed
-            .Select(p => CL_EventManager.currentLevel.transform.TransformPoint(p))
-            .ToList();
+        var smoothed = SmoothUtil.Points(_points.ToList(), 3);
+        var smoothedWorld = smoothed.Select(p => CL_EventManager.currentLevel.transform.TransformPoint(p)).ToList();
 
         _lineRenderer.positionCount = smoothedWorld.Count;
         _lineRenderer.SetPositions(smoothedWorld.ToArray());

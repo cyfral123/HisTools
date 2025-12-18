@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -9,6 +10,7 @@ using HisTools.Utils.RouteFeature;
 using TMPro;
 using UnityEngine;
 using CoroutineRunner = HisTools.Utils.CoroutineRunner;
+using Object = UnityEngine.Object;
 
 namespace HisTools.Features;
 
@@ -25,13 +27,10 @@ public class RoutePlayer : FeatureBase
     private TextMeshPro _notePrefab;
     private LineRenderer _linePrefab;
     private GameObject _markerPrefab;
-    private readonly Material _defaultMaterial;
     private bool _isLoading;
 
     public RoutePlayer() : base("RoutePlayer", "Show recorded routes for levels")
     {
-        _defaultMaterial = new Material(Shader.Find("Sprites/Default"));
-
         AddSettings();
     }
 
@@ -74,8 +73,13 @@ public class RoutePlayer : FeatureBase
 
     private void EnsurePrefabs()
     {
-        if (_routeNameLabelPrefab && _routeDescriptionLabelPrefab && _notePrefab && _linePrefab &&
+        if (_routeNameLabelPrefab &&
+            _routeDescriptionLabelPrefab &&
+            _notePrefab &&
+            _markerPrefab &&
+            _linePrefab &&
             _infoLabelsContainer) return;
+
         Utils.Logger.Debug("Some prefabs are missing, creating them");
         CreatePrefabsIfNeeded();
     }
@@ -154,7 +158,7 @@ public class RoutePlayer : FeatureBase
             _linePrefab = go.AddComponent<LineRenderer>();
             _linePrefab.startWidth = 0.1f;
             _linePrefab.endWidth = 0.1f;
-            _linePrefab.material = _defaultMaterial;
+            _linePrefab.material = new Material(Shader.Find("Sprites/Default"));
             _linePrefab.startColor = GetSetting<ColorSetting>("Remaining color").Value;
             _linePrefab.endColor = GetSetting<ColorSetting>("Remaining color").Value;
         }
@@ -178,10 +182,10 @@ public class RoutePlayer : FeatureBase
         EventBus.Unsubscribe<WorldUpdateEvent>(OnWorldUpdate);
         EventBus.Unsubscribe<EnterLevelEvent>(OnEnterLevel);
 
-        ClearRoutes();
+        Cleanup();
     }
 
-    private void ClearRoutes()
+    private void Cleanup()
     {
         foreach (var kvp in ActiveRoutes.Where(kvp => kvp.Value.Root))
         {
@@ -211,10 +215,9 @@ public class RoutePlayer : FeatureBase
 
     private void DrawRoutes(M_Level level)
     {
-        _playerTransform ??= Player.GetTransform().UnwrapOr(null);
-        ClearRoutes();
+        Player.GetTransform().IfSome(t => _playerTransform = t);
+        Cleanup();
         EnsurePrefabs();
-
         CoroutineRunner.Instance.StartCoroutine(ProcessRoutes(level));
     }
 
@@ -284,7 +287,7 @@ public class RoutePlayer : FeatureBase
         }
 
         _isLoading = true;
-        foreach (var routeData in filePaths.Select(RouteLoader.LoadRoutes))
+        foreach (var routeData in filePaths.Where(p => p.EndsWith(".json")).Select(RouteLoader.LoadRoutes))
         {
             CoroutineRunner.Instance.StartCoroutine(BuildRoute(routeData));
             yield return new WaitForEndOfFrame();
@@ -295,20 +298,20 @@ public class RoutePlayer : FeatureBase
 
     private IEnumerator BuildRoute(RouteSet routeData)
     {
-        if (routeData == null || routeData.points.Count == 0)
+        if (routeData == null || routeData.Points.Count == 0)
             yield break;
 
-        var routeRoot = new GameObject($"Route_{routeData.info.uid}_{routeData.info.name}");
+        var routeRoot = new GameObject($"Route_{routeData.Info.uid}_{routeData.Info.name}");
 
         var instance = new RouteInstance
         {
-            Info = routeData.info,
+            Info = routeData.Info,
             Root = routeRoot
         };
 
         // 1) Convert local points to absolute positions
-        var absolutePoints = new List<Vector3>(routeData.points.Count);
-        absolutePoints.AddRange(routeData.points.Select(Vectors.ConvertPointToAbsolute));
+        var absolutePoints = new List<Vector3>(routeData.Points.Count);
+        absolutePoints.AddRange(routeData.Points.Select(Vectors.ConvertPointToAbsolute));
 
         yield return new WaitForEndOfFrame();
 
@@ -318,6 +321,7 @@ public class RoutePlayer : FeatureBase
         yield return new WaitForEndOfFrame();
 
         // 3) LineRenderer
+
         var lineRenderer = CreateLine(absolutePoints, routeRoot.transform);
         instance.Line = lineRenderer;
 
@@ -377,14 +381,14 @@ public class RoutePlayer : FeatureBase
         yield return new WaitForEndOfFrame();
 
         // 5) Notes
-        foreach (var note in routeData.notes)
+        foreach (var note in routeData.Notes)
         {
             var localPoint = note.Position;
             var absolutePos = Vectors.ConvertPointToAbsolute(localPoint);
 
             var noteLabel = Object.Instantiate(_notePrefab, absolutePos, Quaternion.identity,
                 routeRoot.transform);
-            noteLabel.text = note.note;
+            noteLabel.text = note.Text;
             noteLabel.gameObject.SetActive(true);
             instance.NoteLabels.Add(noteLabel.gameObject);
         }
@@ -394,12 +398,12 @@ public class RoutePlayer : FeatureBase
         // 6) Jump markers
         var markerSize = GetSetting<FloatSliderSetting>("JumpMarkers size").Value;
 
-        foreach (var index in routeData.jumpIndices)
+        foreach (var index in routeData.JumpIndices)
         {
-            if (index < 0 || index >= routeData.points.Count)
+            if (index < 0 || index >= routeData.Points.Count)
                 continue;
 
-            var localPoint = routeData.points[index];
+            var localPoint = routeData.Points[index];
             var absolutePos = Vectors.ConvertPointToAbsolute(localPoint);
 
             var jumpMarker = Object.Instantiate(_markerPrefab, absolutePos, Quaternion.identity, routeRoot.transform);
@@ -425,7 +429,7 @@ public class RoutePlayer : FeatureBase
 
 
         Utils.Logger.Info(
-            $"Loaded route {instance.Info.name}: ({routeData.points.Count} points), ({instance.JumpMarkers.Count} jumps), ({instance.NoteLabels.Count} notes), uid: {instance.Info.uid}"
+            $"Loaded route {instance.Info.name}: ({routeData.Points.Count} points), ({instance.JumpMarkers.Count} jumps), ({instance.NoteLabels.Count} notes), uid: {instance.Info.uid}"
         );
     }
 
@@ -442,8 +446,8 @@ public class RoutePlayer : FeatureBase
 
         renderer.positionCount = absolutePoints.Count;
 
-        if (absolutePoints is Vector3[] arr)
-            renderer.SetPositions(arr);
+        if (absolutePoints is Vector3[] absolutePointsArray)
+            renderer.SetPositions(absolutePointsArray);
         else
             renderer.SetPositions(absolutePoints.ToArray());
 

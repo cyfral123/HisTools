@@ -13,7 +13,6 @@ using UnityEngine;
 
 namespace HisTools;
 
-
 [BepInPlugin(Constants.PluginGuid, Constants.PluginName, Constants.PluginVersion)]
 public class Plugin : BaseUnityPlugin
 {
@@ -39,7 +38,6 @@ public class Plugin : BaseUnityPlugin
             InitializeConfiguration();
             InitializeHarmony();
             CreateRequiredDirectories();
-            ExtractBuiltinStuff();
             InitializeUI();
             InitializeFeatures();
             SubscribeToEvents();
@@ -85,7 +83,7 @@ public class Plugin : BaseUnityPlugin
         _harmony.PatchAll();
     }
 
-    private void CreateRequiredDirectories()
+    private static void CreateRequiredDirectories()
     {
         Directory.CreateDirectory(Constants.Paths.ConfigDir);
         Directory.CreateDirectory(Constants.Paths.RoutesPathDir);
@@ -93,7 +91,7 @@ public class Plugin : BaseUnityPlugin
         Directory.CreateDirectory(Constants.Paths.SpeedrunStatsDir);
     }
 
-    private void InitializeUI()
+    private static void InitializeUI()
     {
         var featuresMenuObject = new GameObject(Constants.UI.MenuObjectName);
         DontDestroyOnLoad(featuresMenuObject);
@@ -122,7 +120,7 @@ public class Plugin : BaseUnityPlugin
         RegisterFeature(miscCategoryPos, "Misc", new SpeedrunStats());
     }
 
-    private void SubscribeToEvents()
+    private static void SubscribeToEvents()
     {
         EventBus.Subscribe<FeatureSettingChangedEvent>(e =>
         {
@@ -161,91 +159,6 @@ public class Plugin : BaseUnityPlugin
         catch (Exception ex)
         {
             Logger.LogError($"Failed to register feature {feature.Name}: {ex}");
-        }
-    }
-
-    private void ExtractBuiltinStuff()
-    {
-        try
-        {
-            var builtinsDir = Path.GetDirectoryName(Info.Location);
-            if (string.IsNullOrEmpty(builtinsDir))
-            {
-                Utils.Logger.Warn("Could not determine plugin directory for builtin assets");
-                return;
-            }
-
-            ExtractBuiltinZips(builtinsDir, Constants.Paths.ConfigDir);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error during builtin assets extraction: {ex}");
-        }
-    }
-
-    private static void ExtractBuiltinZips(string sourceDir, string targetDir)
-    {
-        if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
-        {
-            Utils.Logger.Warn($"Source directory does not exist or is inaccessible: {sourceDir}");
-            return;
-        }
-
-        if (Files.EnsureDirectory(targetDir).IsNone)
-        {
-            Utils.Logger.Error($"targetDir '{targetDir}' is not a directory path");
-            return;
-        }
-
-        if (Files.GetFiles(sourceDir, "*.zip").TryGet(out var zipFiles))
-        {
-            if (zipFiles.Length == 0)
-            {
-                Utils.Logger.Debug("No builtin zip files found to extract");
-                return;
-            }
-
-            Utils.Logger.Info($"Found {zipFiles.Length} builtin zip files to extract");
-
-            foreach (var zip in zipFiles)
-            {
-                ExtractZipFile(zip, targetDir);
-            }
-        }
-        else
-        {
-            Utils.Logger.Error($"No builtin zip files found in '{sourceDir}'");
-        }
-    }
-
-    private static void ExtractZipFile(string zipPath, string targetDir)
-    {
-        var folderName = Path.GetFileNameWithoutExtension(zipPath);
-        var destPath = Path.Combine(targetDir, folderName);
-
-        try
-        {
-            Utils.Logger.Info($"Extracting '{Path.GetFileName(zipPath)}' to '{destPath}'...");
-
-            Directory.CreateDirectory(destPath);
-
-            ZipFile.ExtractToDirectory(zipPath, destPath, true);
-
-            File.Delete(zipPath);
-
-            Utils.Logger.Info($"Successfully extracted to '{destPath}'");
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            Utils.Logger.Error($"Access denied when processing '{zipPath}': {ex.Message}");
-        }
-        catch (IOException ex)
-        {
-            Utils.Logger.Error($"I/O error processing '{zipPath}': {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Utils.Logger.Error($"Failed to extract '{zipPath}': {ex}");
         }
     }
 }

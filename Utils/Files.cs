@@ -105,10 +105,13 @@ public static class Files
                 var firstDot = res.IndexOf('.', asmName.Length + 1);
                 var relative = res[(firstDot + 1)..];
 
-                var parts = relative.Split('.');
+                var lastDot = relative.LastIndexOf('.');
+                var beforeExt = relative[..lastDot];
+                var extension = relative[lastDot..];
 
-                var folder = Path.Combine(parts[..^1]);
-                var fileName = parts[^1];
+                var pathParts = beforeExt.Split('.');
+                var folder = Path.Combine(pathParts[..^1]);
+                var fileName = pathParts[^1] + extension;   
 
                 using var stream = asm.GetManifestResourceStream(res)!;
                 using var reader = new StreamReader(stream);
@@ -131,7 +134,7 @@ public static class Files
                 foreach (var (fileName, content) in files)
                 {
                     var filePath = Path.Combine(dir, fileName);
-                    SaveJsonToFile(filePath, content);
+                    SaveJsonToFile(filePath, content, true);
                 }
             }
         }
@@ -292,7 +295,7 @@ public static class Files
         if (string.IsNullOrWhiteSpace(text))
         {
             Logger.Warn($"JSON empty, regenerating: '{path}'");
-            BackupCorrupt(path);
+            BackupFile(path);
             return new JObject();
         }
 
@@ -303,7 +306,7 @@ public static class Files
         catch (JsonReaderException ex)
         {
             Logger.Error($"JSON corrupted '{path}' Repair attempt error: {ex.Message}");
-            BackupCorrupt(path);
+            BackupFile(path);
 
             var repaired = TryRepairJson(text);
             if (repaired != null)
@@ -319,7 +322,7 @@ public static class Files
         catch (Exception ex)
         {
             Logger.Error($"Unexpected error while reading JSON: {ex.Message}");
-            BackupCorrupt(path);
+            BackupFile(path);
             return new JObject();
         }
     }
@@ -350,17 +353,18 @@ public static class Files
         }
     }
 
-    private static void BackupCorrupt(string path)
+
+    public static void BackupFile(string path, string reason = "")
     {
         try
         {
-            var backup = path + ".corrupt_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var backup = $"{path}.backup_{reason}_{DateTime.Now:yyyyMMdd_HHmmss}";
             File.Copy(path, backup, overwrite: true);
             Logger.Warn($"Backup saved: {backup}");
         }
         catch (Exception ex)
         {
-            Logger.Error($"Failed to save corrupt backup: {ex.Message}");
+            Logger.Error($"Failed to save backup: {ex.Message}");
         }
     }
 
@@ -379,8 +383,12 @@ public static class Files
     /// </summary>
     /// <param name="path">The path where to save the JSON file.</param>
     /// <param name="json">The JSON string to save.</param>
-    public static void SaveJsonToFile(string path, string json)
+    /// <param name="ensureExtension">If true, ensures the path ends with ".json".</param>
+    public static void SaveJsonToFile(string path, string json, bool ensureExtension = false)
     {
+        if (!path.EndsWith(".json") && ensureExtension)
+            path += ".json";
+
         SaveToFile(path, json);
     }
 
