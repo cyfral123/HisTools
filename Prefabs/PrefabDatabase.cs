@@ -1,14 +1,13 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using HisTools.Utils;
+using JetBrains.Annotations;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using Logger = HisTools.Utils.Logger;
 
 namespace HisTools.Prefabs
 {
-    public class PrefabDatabase
+    public sealed class PrefabDatabase
     {
         private static PrefabDatabase _instance;
         public static PrefabDatabase Instance => _instance ??= new PrefabDatabase();
@@ -16,81 +15,107 @@ namespace HisTools.Prefabs
         private readonly Dictionary<string, AssetBundle> _loadedBundles = new();
         private readonly Dictionary<string, Object> _loadedAssets = new();
 
-        public Option<Texture2D> GetTexture(string spriteName)
+        [CanBeNull]
+        public Texture2D GetTexture(string name)
         {
-            var result = _loadedAssets.TryGetValue(spriteName, out var cachedAsset)
-                ? Option.Some((Texture2D)cachedAsset)
-                : Option<Texture2D>.None();
-
-            if (result.TryGet(out var sprite))
-                return Option.Some(sprite);
-
-            Utils.Logger.Error($"PrefabDatabase: Sprite {spriteName} not found");
-            return result;
-        }
-
-        public Option<GameObject> GetObject(string prefabName, bool active)
-        {
-            var result = _loadedAssets.TryGetValue(prefabName, out var cachedAsset)
-                ? Option.Some((GameObject)cachedAsset)
-                : Option<GameObject>.None();
-
-            if (result.TryGet(out var prefab))
+            var texture = GetCached<Texture2D>(name);
+            if (!texture)
             {
-                prefab.SetActive(active);
-                return Option.Some(prefab);
+                Logger.Error($"PrefabDatabase: Texture '{name}' not found");
+                return null;
             }
 
-            Utils.Logger.Error($"PrefabDatabase: Prefab {prefabName} not found");
-            return result;
+            return texture;
+        }
+        
+        [CanBeNull]
+        public GameObject GetObject(string name, bool active)
+        {
+            var go = GetCached<GameObject>(name);
+
+            if (!go)
+            {
+                Logger.Error($"PrefabDatabase: Prefab '{name}' not found");
+                return null;
+            }
+
+            go.SetActive(active);
+            return go;
         }
 
-        public Option<AssetBundle> LoadBundle(string bundleName)
+        [CanBeNull]
+        public AssetBundle LoadBundle(string bundleName)
         {
-            if (_loadedBundles.TryGetValue(bundleName, out var bundle))
-                return Option.Some(bundle);
+            if (_loadedBundles.TryGetValue(bundleName, out var cached))
+                return cached;
 
-            var bundlePath = Path.Combine(Constants.Paths.PluginDllDir, "Assets", bundleName);
+            var bundlePath = ResolveBundlePath(bundleName);
 
             if (!File.Exists(bundlePath))
             {
-                var fallbackPath = Path.Combine(Constants.Paths.PluginDllDir, bundleName);
-                if (!File.Exists(fallbackPath))
-                    return Option<AssetBundle>.None();
-
-                bundlePath = fallbackPath;
+                Logger.Error($"PrefabDatabase: Bundle '{bundleName}' not found");
+                return null;
             }
 
-            bundle = AssetBundle.LoadFromFile(bundlePath);
-
-            if (!bundle)
-                return Option<AssetBundle>.None();
-
-            _loadedBundles[bundleName] = bundle;
-            return Option.Some(bundle);
+            return LoadBundleFromFile(bundleName, bundlePath);
         }
 
+        [CanBeNull]
+        private AssetBundle LoadBundleFromFile(string name, string path)
+        {
+            var bundle = AssetBundle.LoadFromFile(path);
+            if (!bundle) return null;
 
-        public Option<T> LoadAsset<T>(string bundleName, string assetName) where T : Object
+            _loadedBundles[name] = bundle;
+            return bundle;
+        }
+
+        private static string ResolveBundlePath(string bundleName)
+        {
+            var primary = Path.Combine(Constants.Paths.PluginDllDir, "Assets", bundleName);
+            return File.Exists(primary) ? primary : Path.Combine(Constants.Paths.PluginDllDir, bundleName);
+        }
+
+        public void LoadAsset<T>(string bundleName, string assetName) where T : Object
         {
             var cacheKey = $"{bundleName}/{assetName}";
 
-            if (_loadedAssets.TryGetValue(cacheKey, out var cachedAsset))
-                return Option.Some((T)cachedAsset);
+            if (_loadedAssets.ContainsKey(cacheKey))
+                return;
 
-            var bundleOpt = LoadBundle(bundleName);
+            var bundle = LoadBundle(bundleName);
 
-            if (!bundleOpt.TryGet(out var bundle))
-                return Option<T>.None();
-
+            if (!bundle)
+            {
+                Logger.Error($"PrefabDatabase: Bundle '{bundleName}' not found");
+                return;
+            }
+            
             var asset = bundle.LoadAsset<T>(assetName);
-
             if (!asset)
-                return Option<T>.None();
+            {
+                Logger.Error($"PrefabDatabase: Asset '{assetName}' not found in '{bundleName}'");
+                return;
+            }
+            
+            Cache(cacheKey, asset);
+        }
 
-            _loadedAssets[cacheKey] = asset;
+        [CanBeNull]
+        private T GetCached<T>(string key) where T : Object
+        {
+            if (_loadedAssets.TryGetValue(key, out var obj) && obj != null && obj is T typed)
+            {
+                return typed;
+            }
 
-            return Option.Some(asset);
+            return null;
+        }
+
+        private T Cache<T>(string key, T asset) where T : Object
+        {
+            _loadedAssets[key] = asset;
+            return asset;
         }
     }
 }

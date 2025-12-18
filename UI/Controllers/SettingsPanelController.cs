@@ -1,6 +1,5 @@
 using DG.Tweening;
 using HisTools.Features.Controllers;
-using HisTools.Utils;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,7 +8,7 @@ namespace HisTools.UI.Controllers;
 
 public class SettingsPanelController : MonoBehaviour
 {
-    public static Option<SettingsPanelController> Instance { get; private set; }
+    public static SettingsPanelController Instance { get; private set; }
     private static IFeature _lastFeature;
 
     private static RectTransform _panelRect;
@@ -20,16 +19,14 @@ public class SettingsPanelController : MonoBehaviour
 
     public void Awake()
     {
-        if (Instance.TryGet(out var value))
+        if (Instance)
         {
-            if (value != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
+            Destroy(gameObject);
         }
-
-        Instance = Option.Some(this);
+        else
+        {
+            Instance = this;
+        }
 
         var parentCanvas = FeaturesMenu.Canvas;
         if (!parentCanvas)
@@ -100,13 +97,5 @@ public class SettingsPanelController : MonoBehaviour
     public void HideSettings()
     {
         _panelRect.gameObject.SetActive(false);
-    }
-
-    private void OnDestroy()
-    {
-        if (Instance.TryGet(out var value) && value == this)
-        {
-            Instance = Option<SettingsPanelController>.None();
-        }
     }
 }

@@ -111,7 +111,7 @@ public static class Files
 
                 var pathParts = beforeExt.Split('.');
                 var folder = Path.Combine(pathParts[..^1]);
-                var fileName = pathParts[^1] + extension;   
+                var fileName = pathParts[^1] + extension;
 
                 using var stream = asm.GetManifestResourceStream(res)!;
                 using var reader = new StreamReader(stream);
@@ -170,31 +170,35 @@ public static class Files
         }
     }
 
+
     /// <summary>
-    /// Retrieves the active state of a route from the configuration.
+    /// Tries to get the active state of a route from the configuration.
     /// </summary>
     /// <param name="routeUid">The unique identifier of the route.</param>
-    /// <returns>An Option containing the route's active state if found, or None if not found.</returns>
-    public static Option<bool> GetRouteStateFromConfig(string routeUid)
+    /// <param name="state">The active state of the route if found.</param>
+    /// <returns>True if the state was successfully retrieved, false otherwise.</returns>
+    public static bool TryGetRouteStateFromConfig(string routeUid, out bool state)
     {
+        state = false;
+
         try
         {
-            var filePath = Constants.Paths.RoutesStateConfigFilePath;
+            var json = LoadOrRepairJson(Constants.Paths.RoutesStateConfigFilePath);
+            var token = json[routeUid];
 
-            var json = LoadOrRepairJson(filePath);
+            if (token == null)
+                return false;
 
-            if (json[routeUid] != null)
-            {
-                return Option.Some(json[routeUid].ToObject<bool>());
-            }
+            state = token.ToObject<bool>();
+            return true;
         }
         catch (Exception ex)
         {
             Logger.Error($"Failed to load route state '{routeUid}': {ex.Message}");
+            return false;
         }
-
-        return Option<bool>.None();
     }
+
 
     /// <summary>
     /// Saves a setting value to the configuration for a specific feature.
@@ -407,45 +411,51 @@ public static class Files
     /// <summary>
     /// Ensures that a directory exists at the specified path, creating it if necessary.
     /// </summary>
-    /// <param name="path">The path of the directory to ensure exists.</param>
-    /// <returns>An Option containing the DirectoryInfo if successful, or None if the directory could not be created.</returns>
-    public static Option<DirectoryInfo> EnsureDirectory(string path)
+    public static bool TryEnsureDirectory(string path, out DirectoryInfo directory)
     {
-        if (Directory.Exists(path))
-            return Option.Some(new DirectoryInfo(path));
+        directory = null;
 
         try
         {
-            var dirInfo = Directory.CreateDirectory(path);
-            return Option.Some(dirInfo);
+            if (Directory.Exists(path))
+            {
+                directory = new DirectoryInfo(path);
+                return true;
+            }
+
+            directory = Directory.CreateDirectory(path);
+            return true;
         }
         catch (Exception ex)
         {
             Logger.Error($"Failed to create directory '{path}': {ex.Message}");
-            return Option<DirectoryInfo>.None();
+            return false;
         }
     }
+
 
     /// <summary>
     /// Retrieves the names of files in the specified directory.
     /// </summary>
-    /// <param name="path">The directory to search.</param>
-    /// <param name="searchPattern">The search string to match against the names of files in path. The parameter cannot end in two periods (..) or contain invalid characters.</param>
-    /// <returns>An Option containing an array of file names if successful, or None if an error occurs.</returns>
-    public static Option<string[]> GetFiles(string path, string searchPattern = null)
+    public static bool TryGetFiles(string path, out string[] files, string searchPattern = null)
     {
+        files = null;
+
         try
         {
-            var files = searchPattern == null ? Directory.GetFiles(path) : Directory.GetFiles(path, searchPattern);
+            files = searchPattern == null
+                ? Directory.GetFiles(path)
+                : Directory.GetFiles(path, searchPattern);
 
-            return Option.Some(files);
+            return true;
         }
         catch (Exception ex)
         {
             Logger.Error($"Failed to get files from path '{path}': {ex.Message}");
-            return Option<string[]>.None();
+            return false;
         }
     }
+
 
     public static string GetNextFilePath(string folderPath, string baseFileName, string extension)
     {

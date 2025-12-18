@@ -52,11 +52,16 @@ public class RouteRecorder : FeatureBase
 
     public override void OnEnable()
     {
-        Player.GetTransform().IfSome(t => _playerTransform = t);
-        
+        var player = ENT_Player.GetPlayer();
+        if (!player)
+            return;
+
+        _playerTransform = player.transform;
+
         if (!_markerPrefab)
         {
-            if (PrefabDatabase.Instance.GetObject("histools/SphereMarker", false).TryGet(out var marker))
+            var marker = PrefabDatabase.Instance.GetObject("histools/SphereMarker", false);
+            if (marker)
             {
                 _markerPrefab = Object.Instantiate(marker);
                 _markerPrefab.AddComponent<MarkerActivator>();
@@ -73,30 +78,37 @@ public class RouteRecorder : FeatureBase
         _lineRenderer = lineObj.AddComponent<LineRenderer>();
         _lineRenderer.positionCount = 0;
         _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        _lineRenderer.widthMultiplier = GetSetting<FloatSliderSetting>("Preview line width").Value;
-        _lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        _lineRenderer.widthMultiplier =
+            GetSetting<FloatSliderSetting>("Preview line width").Value;
+        _lineRenderer.shadowCastingMode =
+            UnityEngine.Rendering.ShadowCastingMode.Off;
         _lineRenderer.receiveShadows = false;
 
-        Gradient gradient = new();
+        var gradient = new Gradient();
         gradient.SetKeys(
-            [
+            new[]
+            {
                 new GradientColorKey(Color.green, 0f),
                 new GradientColorKey(Color.red, 1f)
-            ],
-            [
+            },
+            new[]
+            {
                 new GradientAlphaKey(1f, 0f),
                 new GradientAlphaKey(1f, 1f)
-            ]
+            }
         );
         _lineRenderer.colorGradient = gradient;
 
         EventBus.Subscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
 
-        if (PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true).TryGet(out var guide))
+        // UI guide
+        var guide = PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true);
+        if (guide)
         {
             _uiGuide = Object.Instantiate(guide, _playerTransform, true);
         }
     }
+
 
     public override void OnDisable()
     {
@@ -110,29 +122,22 @@ public class RouteRecorder : FeatureBase
         var folderPath = Path.Combine(Constants.Paths.ConfigDir, "Routes");
         Directory.CreateDirectory(folderPath);
 
-        var authorName = SteamClient.IsValid ? SteamClient.Name : "unknownAuthor";
-        var levelName = Level.GetCurrent()
-            .Map(l => l.levelName)
-            .UnwrapOr("unknownLevel");
+        var authorName = SteamClient.Name ?? "unknownAuthor";
+        var levelName = CL_EventManager.currentLevel?.levelName ?? "unknownLevel";
 
-        var filePath = Files.GetNextFilePath(
-            folderPath,
-            $"route_{levelName}_by_{authorName}",
-            "json");
+        var filePath = Files.GetNextFilePath(folderPath, $"route_{levelName}_by_{authorName}", "json");
 
         var resultFileName = Path.GetFileNameWithoutExtension(filePath);
 
         var quality = GetSetting<FloatSliderSetting>("Record quality");
-        var minDistance = Math.Round(
-            math.remap(quality.Min, quality.Max, quality.Max, quality.Min, quality.Value), 2);
+        var minDistance = Math.Round(math.remap(quality.Min, quality.Max, quality.Max, quality.Min, quality.Value), 2);
 
         var routeInfo = new RouteInfo
         {
             uid = Files.GenerateUid(),
             name = $"unnamed_{levelName}",
             author = SteamClient.Name,
-            description =
-                $"Recorded on {DateTime.Now}\nEdit this route in json:\n..\\BepInEx\\HisTools\\Routes\\{resultFileName}.json",
+            description = $"Recorded {DateTime.Now}\nEdit json:\n..\\BepInEx\\HisTools\\Routes\\{resultFileName}.json",
             targetLevel = levelName
         };
 
@@ -244,16 +249,12 @@ public class RouteRecorder : FeatureBase
 
         var marker = Object.Instantiate(_markerPrefab);
 
-        var levelTransformOpt = Level.GetCurrentTransform();
-        var worldPos = levelTransformOpt
-            .Map(t => t.TransformPoint(localPos))
-            .UnwrapOr(localPos);
+        var levelTransformOpt = CL_EventManager.currentLevel?.transform;
+        var worldPos = levelTransformOpt?.TransformPoint(localPos) ?? localPos;
 
-        marker.transform.position =
-            worldPos + Vector3.up * 0.1f;
+        marker.transform.position = worldPos + Vector3.up * 0.1f;
 
-        marker.transform.localScale =
-            Vector3.one * GetSetting<FloatSliderSetting>("Preview markers size").Value;
+        marker.transform.localScale = Vector3.one * GetSetting<FloatSliderSetting>("Preview markers size").Value;
 
         marker.SetActive(true);
         _jumpMarkers.Add(marker);

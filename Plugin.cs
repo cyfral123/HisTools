@@ -135,10 +135,8 @@ public class Plugin : BaseUnityPlugin
         EventBus.Subscribe<GameStartEvent>(_ => FeaturesMenu.EnsureHisToolsMenuInitialized());
 
         EventBus.Subscribe<FeatureSettingsMenuToggleEvent>(e =>
-        {
-            if (SettingsPanelController.Instance.TryGet(out var value))
-                value.HandleSettingsToggle(e.Feature);
-        });
+            SettingsPanelController.Instance.HandleSettingsToggle(e.Feature)
+        );
     }
 
     private void RegisterFeature(Vector2 categoryPosition, string categoryName, IFeature feature)

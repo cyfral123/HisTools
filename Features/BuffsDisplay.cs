@@ -24,10 +24,10 @@ public class BuffsDisplay : FeatureBase
     private Canvas _canvas;
     private HorizontalLayoutGroup _layout;
 
-    private Option<BuffIndicator> _grub;
-    private Option<BuffIndicator> _injector;
-    private Option<BuffIndicator> _pills;
-    private Option<BuffIndicator> _foodBar;
+    private BuffIndicator? _grub;
+    private BuffIndicator? _injector;
+    private BuffIndicator? _pills;
+    private BuffIndicator? _foodBar;
 
     private readonly BoolSetting _showOnlyInPause;
     private readonly FloatSliderSetting _buffsPosition;
@@ -38,9 +38,9 @@ public class BuffsDisplay : FeatureBase
         _buffsPosition = AddSetting(new FloatSliderSetting(this, "Position", "...", 2f, 1f, 6f, 1f, 0));
     }
 
-    private Option<BuffIndicator> GetBuffIndicator(string name)
+    private BuffIndicator? GetBuffIndicator(string name)
     {
-        if (!_layout) return Option<BuffIndicator>.None();
+        if (!_layout || !_layout.transform) return null;
 
         var transform = _layout.transform.Find(name);
         var icons = transform.Find("Icons").GetComponentsInChildren<Image>(true);
@@ -48,35 +48,65 @@ public class BuffsDisplay : FeatureBase
         var time = transform.Find("Time").GetComponent<TextMeshProUGUI>();
 
         if (icons.Length == 0 || !value || !time || !transform)
-            return Option<BuffIndicator>.None();
+            return null;
 
-        return Option.Some(new BuffIndicator
-            { Transform = transform, Icons = icons, Value = value, Time = time });
+        return new BuffIndicator { Transform = transform, Icons = icons, Value = value, Time = time };
     }
 
     private bool EnsurePrefabs()
     {
-        if (_grub.IsSome && _injector.IsSome && _pills.IsSome && _foodBar.IsSome && _layout && _canvas) return true;
-        if (!PrefabDatabase.Instance.GetObject("histools/UI_BuffsDisplay", true).TryGet(out var prefab)) return false;
+        if (_grub.HasValue &&
+            _injector.HasValue &&
+            _pills.HasValue &&
+            _foodBar.HasValue &&
+            _layout &&
+            _canvas)
+            return true;
+
+        var prefab = PrefabDatabase.Instance.GetObject("histools/UI_BuffsDisplay", true);
+        if (!prefab)
+            return false;
 
         var go = Object.Instantiate(prefab);
+
         _canvas = go.GetComponent<Canvas>();
         _layout = _canvas.GetComponentInChildren<HorizontalLayoutGroup>(true);
 
-        if (!GetBuffIndicator("Grub").TryGet(out var grub)) return false;
-        if (!GetBuffIndicator("Injector").TryGet(out var injector)) return false;
-        if (!GetBuffIndicator("Pills").TryGet(out var pills)) return false;
-        if (!GetBuffIndicator("FoodBar").TryGet(out var foodBar)) return false;
+        if (!_canvas || !_layout)
+        {
+            Object.Destroy(go);
+            return false;
+        }
 
-        _grub = Option<BuffIndicator>.Some(grub);
-        _injector = Option<BuffIndicator>.Some(injector);
-        _pills = Option<BuffIndicator>.Some(pills);
-        _foodBar = Option<BuffIndicator>.Some(foodBar);
+        var grub = GetBuffIndicator("Grub");
+        var injector = GetBuffIndicator("Injector");
+        var pills = GetBuffIndicator("Pills");
+        var foodBar = GetBuffIndicator("FoodBar");
 
-        Anchor.SetAnchor(_layout.GetComponent<RectTransform>(), (int)_buffsPosition.Value);
+        if (!grub.HasValue ||
+            !injector.HasValue ||
+            !pills.HasValue ||
+            !foodBar.HasValue)
+        {
+            Object.Destroy(go);
+            _canvas = null;
+            _layout = null;
+            return false;
+        }
+
+        _grub = grub;
+        _injector = injector;
+        _pills = pills;
+        _foodBar = foodBar;
+
+        Anchor.SetAnchor(
+            _layout.GetComponent<RectTransform>(),
+            (int)_buffsPosition.Value
+        );
 
         return true;
     }
+
 
     public override void OnEnable()
     {
@@ -85,13 +115,15 @@ public class BuffsDisplay : FeatureBase
 
     private static float CalculateBuffSecondsLeft(BuffContainer.Buff buff, float loseRate, bool lose)
     {
-        if (buff == null || buff.maxAmount <= 0f || float.IsNaN(buff.amount))
+        var player = ENT_Player.GetPlayer();
+        if (buff == null || buff.maxAmount <= 0f || float.IsNaN(buff.amount) || player == null)
             return 0f;
 
         if (!lose || loseRate <= 0f)
             return float.PositiveInfinity;
 
-        var buffs = Player.GetPlayer().Unwrap().curBuffs;
+        var buffs = player.curBuffs;
+
         var timeMultBuff = buffs.GetBuff("buffTimeMult");
 
         var timeMultiplier = Mathf.Max(1f + timeMultBuff, 0.1f);
@@ -150,14 +182,15 @@ public class BuffsDisplay : FeatureBase
             return;
         }
 
-        if (!Player.GetPlayer().TryGet(out var player)) return;
+        var player = ENT_Player.GetPlayer();
+        if (player == null) return;
 
         if (_showOnlyInPause.Value && !CL_GameManager.gMan.isPaused)
         {
-            _grub.Unwrap().Transform.gameObject.SetActive(false);
-            _injector.Unwrap().Transform.gameObject.SetActive(false);
-            _foodBar.Unwrap().Transform.gameObject.SetActive(false);
-            _pills.Unwrap().Transform.gameObject.SetActive(false);
+            _grub?.Transform.gameObject.SetActive(false);
+            _injector?.Transform.gameObject.SetActive(false);
+            _foodBar?.Transform.gameObject.SetActive(false);
+            _pills?.Transform.gameObject.SetActive(false);
             return;
         }
 
@@ -174,23 +207,23 @@ public class BuffsDisplay : FeatureBase
         var pilledContainers = SearchBuff(containers, "pilled").Where(container => !HaveBuff(container, "roided"))
             .ToList();
         var goopedContainers = SearchBuff(containers, "gooped");
-
-        _grub.Unwrap().Transform.gameObject.SetActive(goopedContainers.Count > 0);
-        _injector.Unwrap().Transform.gameObject.SetActive(roidedContainers.Count > 0);
-        _foodBar.Unwrap().Transform.gameObject.SetActive(foodBarContainers.Count > 0);
-        _pills.Unwrap().Transform.gameObject.SetActive(pilledContainers.Count > 0);
-
+        
+        _grub?.Transform.gameObject.SetActive(goopedContainers.Count > 0);
+        _injector?.Transform.gameObject.SetActive(roidedContainers.Count > 0);
+        _foodBar?.Transform.gameObject.SetActive(foodBarContainers.Count > 0);
+        _pills?.Transform.gameObject.SetActive(pilledContainers.Count > 0);
+        
         if (goopedContainers.Count > 0)
-            RenderBuff(goopedContainers, _grub.Unwrap(), "gooped");
+            RenderBuff(goopedContainers, _grub.GetValueOrDefault(), "gooped");
 
         if (roidedContainers.Count > 0)
-            RenderBuff(roidedContainers, _injector.Unwrap(), "roided");
+            RenderBuff(roidedContainers, _injector.GetValueOrDefault(), "roided");
 
         if (pilledContainers.Count > 0)
-            RenderBuff(pilledContainers, _pills.Unwrap(), "pilled");
+            RenderBuff(pilledContainers, _pills.GetValueOrDefault(), "pilled");
 
         if (foodBarContainers.Count > 0)
-            RenderBuff(foodBarContainers, _foodBar.Unwrap(), "roided", "pilled");
+            RenderBuff(foodBarContainers, _foodBar.GetValueOrDefault(), "roided", "pilled");
     }
 
     private void RenderBuff(List<BuffContainer> containers, BuffIndicator obj, string buffId1, string buffId2 = null)

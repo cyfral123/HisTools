@@ -14,7 +14,6 @@ public class DebugInfo : FeatureBase
 
     private readonly StringBuilder _summary = new();
     private float _speedValue;
-    private Transform _playerTransform;
 
     private string _fgTextColor;
     private string _bgTextColor;
@@ -28,8 +27,9 @@ public class DebugInfo : FeatureBase
     {
         if (_uiCanvas && _uiText) return;
 
-        if (!PrefabDatabase.Instance.GetObject("histools/Feature_DebugInfo", false)
-                .TryGet(out var prefab)) return;
+        var prefab = PrefabDatabase.Instance.GetObject("histools/Feature_DebugInfo", false);
+        if (!prefab) return;
+
         var go = Object.Instantiate(prefab);
         _uiCanvas = go.GetComponentInChildren<Canvas>(true);
         _uiText = go.GetComponentInChildren<TextMeshProUGUI>(true);
@@ -38,8 +38,7 @@ public class DebugInfo : FeatureBase
     private void AddSettings()
     {
         AddSetting(new BoolSetting(this, "Color from palette", "Prefer color from accent palette", true));
-        AddSetting(new BoolSetting(this, "Crosshair pos", "Copy crosshair point position from world into clipboard",
-            false));
+        AddSetting(new BoolSetting(this, "Crosshair pos", "Copy crosshair world position into clipboard", false));
         AddSetting(new BoolSetting(this, "Level name", "Show level name", true));
         AddSetting(new BoolSetting(this, "Level flipped", "Show if level is flipped", true));
         AddSetting(new BoolSetting(this, "Horizontal speed", "Show player speed indicator", true));
@@ -74,12 +73,13 @@ public class DebugInfo : FeatureBase
         var level = CL_EventManager.currentLevel;
 
         if (!level) return;
-        _playerTransform ??= Utils.Player.GetTransform().UnwrapOr(null);
+        var player = ENT_Player.GetPlayer();
+        if (player == null) return;
         EnsurePrefab();
 
         _uiCanvas.gameObject.SetActive(true);
 
-        var absolutePos = _playerTransform.position;
+        var absolutePos = player.transform.position;
         var levelPos = Utils.Vectors.ConvertPointToLocal(absolutePos);
 
         var copyCrosshair = GetSetting<BoolSetting>("Crosshair pos").Value;

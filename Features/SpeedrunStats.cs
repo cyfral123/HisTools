@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using HisTools.Features.Controllers;
@@ -71,24 +70,23 @@ public class SpeedrunStats : FeatureBase
 
     private void EnsureUI()
     {
-        if (_statsCanvas && _prevText) return;
-        var prefab = PrefabDatabase.Instance.GetObject("histools/UI_Speedrun", false).Match(
-            go => go,
-            () =>
-            {
-                Utils.Logger.Warn("SpeedrunStats: UI prefab is missing");
-                return null;
-            }
-        );
+        if (_statsCanvas && _prevText)
+            return;
 
-        if (!prefab) return;
+        var prefab = PrefabDatabase.Instance.GetObject("histools/UI_Speedrun", false);
+        if (!prefab)
+            return;
 
         var go = Object.Instantiate(prefab);
 
         _statsCanvas = go.GetComponent<Canvas>();
+        if (!_statsCanvas)
+        {
+            Object.Destroy(go);
+            return;
+        }
 
         var texts = _statsCanvas.GetComponentsInChildren<TextMeshProUGUI>(true);
-
         if (texts.Length < 2)
         {
             Utils.Logger.Warn("SpeedrunStats: UI prefab is missing texts");
@@ -101,8 +99,15 @@ public class SpeedrunStats : FeatureBase
         _currText = texts[1];
 
         var group = _statsCanvas.GetComponentInChildren<VerticalLayoutGroup>(true);
-        Anchor.SetAnchor(group.GetComponent<RectTransform>(), (int)_levelsPosition.Value);
+        if (group)
+        {
+            Anchor.SetAnchor(
+                group.GetComponent<RectTransform>(),
+                (int)_levelsPosition.Value
+            );
+        }
     }
+
 
     private bool ShouldUpdate()
     {
@@ -126,7 +131,10 @@ public class SpeedrunStats : FeatureBase
     private void OnWorldUpdate(WorldUpdateEvent e)
     {
         if (!ShouldUpdate()) return;
-        Player.GetTransform().IfSome(t => _playerTransform = t);
+        var player = ENT_Player.GetPlayer();
+        if (player == null) return;
+        
+        _playerTransform = player.transform;
         EnsureUI();
         if (!_statsCanvas) return;
 
@@ -256,7 +264,7 @@ public class SpeedrunStats : FeatureBase
     {
         if (Cheats.Detected)
         {
-            Utils.Logger.Debug("SpeedrunStats: Level changed while cheating, ignoring");
+            Utils.Logger.Debug("SpeedrunStats Watcher: Level changed while cheating, ignoring");
             return;
         }
 
@@ -273,7 +281,7 @@ public class SpeedrunStats : FeatureBase
 
     private void OnGameStart(GameStartEvent e)
     {
-        Utils.Logger.Debug("SpeedrunStats: Game start");
+        Utils.Logger.Debug("SpeedrunStats Watcher: Game start");
         StartHistory(savePrevious: true);
     }
 

@@ -94,58 +94,67 @@ public class RoutePlayer : FeatureBase
 
         if (!_routeNameLabelPrefab)
         {
-            if (PrefabDatabase.Instance.GetObject("histools/InfoLabel", false)
-                .TryGet(out var prefab))
+            var prefab = PrefabDatabase.Instance.GetObject("histools/InfoLabel", false);
+            if (prefab)
             {
                 var go = Object.Instantiate(prefab);
                 var tmp = go.GetComponent<TextMeshPro>();
-                tmp.color = Palette.HtmlWithForceAlpha(Plugin.RouteLabelEnabledColorHtml.Value,
-                    Plugin.RouteLabelEnabledOpacityHtml.Value / 100.0f);
+                tmp.color = Palette.HtmlWithForceAlpha(
+                    Plugin.RouteLabelEnabledColorHtml.Value,
+                    Plugin.RouteLabelEnabledOpacityHtml.Value / 100.0f
+                );
+
                 var look = go.AddComponent<LookAtPlayer>();
                 look.player = _playerTransform;
+
                 _routeNameLabelPrefab = go;
             }
         }
 
         if (!_routeDescriptionLabelPrefab)
         {
-            if (PrefabDatabase.Instance.GetObject("histools/InfoLabel", false)
-                .TryGet(out var prefab))
+            var prefab = PrefabDatabase.Instance.GetObject("histools/InfoLabel", false);
+            if (prefab)
             {
                 var go = Object.Instantiate(prefab);
                 var tmp = go.GetComponent<TextMeshPro>();
                 tmp.color = Palette.FromHtml(Plugin.BackgroundHtml.Value);
+
                 var look = go.AddComponent<LookAtPlayer>();
                 look.player = _playerTransform;
-                go.AddComponent<LabelLookAnimation>();
 
+                go.AddComponent<LabelLookAnimation>();
                 _routeDescriptionLabelPrefab = go;
             }
         }
 
         if (!_markerPrefab)
         {
-            if (PrefabDatabase.Instance.GetObject("histools/SphereMarker", false)
-                .TryGet(out var prefab))
+            var prefab = PrefabDatabase.Instance.GetObject("histools/SphereMarker", false);
+            if (prefab)
             {
                 var go = Object.Instantiate(prefab);
                 go.AddComponent<MarkerActivator>();
-                go.GetComponent<Renderer>().material.color = GetSetting<ColorSetting>("Remaining color").Value;
+                go.GetComponent<Renderer>().material.color =
+                    GetSetting<ColorSetting>("Remaining color").Value;
+
                 _markerPrefab = go;
             }
         }
 
         if (!_notePrefab)
         {
-            if (PrefabDatabase.Instance.GetObject("histools/InfoLabel", false)
-                .TryGet(out var prefab))
+            var prefab = PrefabDatabase.Instance.GetObject("histools/InfoLabel", false);
+            if (prefab)
             {
                 var go = Object.Instantiate(prefab);
                 var tmp = go.GetComponent<TextMeshPro>();
                 tmp.fontSize = 3;
                 tmp.color = GetSetting<ColorSetting>("Text color").Value;
+
                 var look = go.AddComponent<LookAtPlayer>();
                 look.player = _playerTransform;
+
                 _notePrefab = tmp;
             }
         }
@@ -159,10 +168,13 @@ public class RoutePlayer : FeatureBase
             _linePrefab.startWidth = 0.1f;
             _linePrefab.endWidth = 0.1f;
             _linePrefab.material = new Material(Shader.Find("Sprites/Default"));
-            _linePrefab.startColor = GetSetting<ColorSetting>("Remaining color").Value;
-            _linePrefab.endColor = GetSetting<ColorSetting>("Remaining color").Value;
+
+            var color = GetSetting<ColorSetting>("Remaining color").Value;
+            _linePrefab.startColor = color;
+            _linePrefab.endColor = color;
         }
     }
+
 
     public override void OnEnable()
     {
@@ -215,7 +227,10 @@ public class RoutePlayer : FeatureBase
 
     private void DrawRoutes(M_Level level)
     {
-        Player.GetTransform().IfSome(t => _playerTransform = t);
+        var player = ENT_Player.GetPlayer();
+        if (player == null) return;
+
+        _playerTransform = player.transform;
         Cleanup();
         EnsurePrefabs();
         CoroutineRunner.Instance.StartCoroutine(ProcessRoutes(level));
@@ -415,7 +430,8 @@ public class RoutePlayer : FeatureBase
         ActiveRoutes[instance.Info.uid] = instance;
 
         // 7) Restore route state
-        if (Files.GetRouteStateFromConfig(instance.Info.uid).TryGet(out var routeState))
+        var success = Files.TryGetRouteStateFromConfig(instance.Info.uid, out var routeState);
+        if (success)
         {
             Utils.Logger.Debug($"Restored route '{instance.Info.uid}' state: active={routeState}");
             EventBus.Publish(new ToggleRouteEvent(instance.Info.uid, routeState));
