@@ -3,10 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using HisTools.Features.Controllers;
 using HisTools.Prefabs;
 using HisTools.Utils;
 using HisTools.Utils.RouteFeature;
+using Newtonsoft.Json;
 using TMPro;
 using UnityEngine;
 using CoroutineRunner = HisTools.Utils.CoroutineRunner;
@@ -285,24 +287,27 @@ public class RoutePlayer : FeatureBase
     {
         if (level.levelName == "M1_Intro_01")
         {
-            Utils.Logger.Warn("RoutePlayer: Intro level, skipping");
             ShowIntroGuides();
-
-            yield break;
-        }
-
-        List<string> filePaths = null;
-        yield return CoroutineRunner.Instance.StartCoroutine(
-            Files.GetRouteFilesByTargetLevel(level.levelName, callback => filePaths = callback));
-
-        if (filePaths == null)
-        {
-            Utils.Logger.Warn("RoutePlayer: No route files found");
             yield break;
         }
 
         _isLoading = true;
-        foreach (var routeData in filePaths.Where(p => p.EndsWith(".json")).Select(RouteLoader.LoadRoutes))
+        
+        List<string> filePaths = null;
+        yield return CoroutineRunner.Instance.StartCoroutine(
+            Files.GetRouteFilesByTargetLevel(
+                level.levelName,
+                callback => filePaths = callback));
+
+        if (filePaths == null)
+        {
+            _isLoading = false;
+            yield break;
+        }
+
+        foreach (var routeData in filePaths
+                     .Where(p => p.EndsWith(".json"))
+                     .Select(RouteLoader.LoadRoutes))
         {
             CoroutineRunner.Instance.StartCoroutine(BuildRoute(routeData));
             yield return new WaitForEndOfFrame();
@@ -311,22 +316,23 @@ public class RoutePlayer : FeatureBase
         _isLoading = false;
     }
 
-    private IEnumerator BuildRoute(RouteSet routeData)
+    private IEnumerator BuildRoute(RouteData routeData)
     {
-        if (routeData == null || routeData.Points.Count == 0)
+        if (routeData?.points == null || routeData.points.Count == 0)
             yield break;
 
-        var routeRoot = new GameObject($"Route_{routeData.Info.uid}_{routeData.Info.name}");
+        var routeRoot = new GameObject(
+            $"Route_{routeData.info.uid}_{routeData.info.name}"
+        );
 
         var instance = new RouteInstance
         {
-            Info = routeData.Info,
+            Info = routeData.info,
             Root = routeRoot
         };
 
         // 1) Convert local points to absolute positions
-        var absolutePoints = new List<Vector3>(routeData.Points.Count);
-        absolutePoints.AddRange(routeData.Points.Select(Vectors.ConvertPointToAbsolute));
+        var absolutePoints = routeData.points.Select(Vectors.ConvertPointToAbsolute).ToList();
 
         yield return new WaitForEndOfFrame();
 
@@ -394,14 +400,14 @@ public class RoutePlayer : FeatureBase
         yield return new WaitForEndOfFrame();
 
         // 5) Notes
-        foreach (var note in routeData.Notes)
+        foreach (var note in routeData.notes)
         {
-            var localPoint = note.Position;
+            var localPoint = note.position;
             var absolutePos = Vectors.ConvertPointToAbsolute(localPoint);
 
             var noteLabel = Object.Instantiate(_notePrefab, absolutePos, Quaternion.identity,
                 routeRoot.transform);
-            noteLabel.text = note.Text;
+            noteLabel.text = note.text;
             noteLabel.gameObject.SetActive(true);
             instance.NoteLabels.Add(noteLabel.gameObject);
         }
@@ -411,12 +417,12 @@ public class RoutePlayer : FeatureBase
         // 6) Jump markers
         var markerSize = GetSetting<FloatSliderSetting>("JumpMarkers size").Value;
 
-        foreach (var index in routeData.JumpIndices)
+        foreach (var index in routeData.jumpIndices)
         {
-            if (index < 0 || index >= routeData.Points.Count)
+            if (index < 0 || index >= routeData.points.Count)
                 continue;
 
-            var localPoint = routeData.Points[index];
+            var localPoint = routeData.points[index];
             var absolutePos = Vectors.ConvertPointToAbsolute(localPoint);
 
             var jumpMarker = Object.Instantiate(_markerPrefab, absolutePos, Quaternion.identity, routeRoot.transform);
@@ -443,7 +449,7 @@ public class RoutePlayer : FeatureBase
 
 
         Utils.Logger.Info(
-            $"Loaded route {instance.Info.name}: ({routeData.Points.Count} points), ({instance.JumpMarkers.Count} jumps), ({instance.NoteLabels.Count} notes), uid: {instance.Info.uid}"
+            $"Loaded route {instance.Info.name}: ({routeData.points.Count} points), ({instance.JumpMarkers.Count} jumps), ({instance.NoteLabels.Count} notes), uid: {instance.Info.uid}"
         );
     }
 
@@ -552,7 +558,7 @@ public class RoutePlayer : FeatureBase
                 const float width = 0.15f;
                 var t0 = Mathf.Clamp01(progress - width / 2f);
                 var t1 = Mathf.Clamp01(progress + width / 2f);
-                
+
                 var colorKeys = new GradientColorKey[]
                 {
                     new(completedColor, 0f),

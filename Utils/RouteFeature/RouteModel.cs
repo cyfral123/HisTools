@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using UnityEngine;
 
 namespace HisTools.Utils.RouteFeature;
@@ -28,22 +27,27 @@ public class RouteNoteDto
 }
 
 
-public class Note(Vector3 position, string text)
+public class Note
 {
-    public Vector3 Position { get; } = position;
-    public string Text { get; } = text;
+    public Vector3 Position { get; }
+    public string Text { get; }
+
+    public Note(Vector3 position, string text)
+    {
+        Position = position;
+        Text = text;
+    }
 }
 
 [Serializable]
 public class RouteInfo
 {
-    public string uid { get; set; }
-    public string name { get; set; }
-    public string author { get; set; }
-    public string description { get; set; }
-    public string targetLevel { get; set; }
+    public string uid;
+    public string name;
+    public string author;
+    public string description;
+    public string targetLevel;
 }
-
 
 [Serializable]
 public class RouteData
@@ -66,13 +70,4 @@ public class RouteInstance
     public Vector3[] CachedPositions;
     public int LastClosestIndex = 0;
     public Gradient CachedGradient;
-}
-
-public class RouteSet
-{
-    public RouteInfo Info;
-
-    public readonly List<Vector3> Points = [];
-    public readonly HashSet<int> JumpIndices = [];
-    public readonly List<Note> Notes = [];
 }

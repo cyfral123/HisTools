@@ -4,33 +4,37 @@ using System.IO;
 using System.Linq;
 using HisTools.Utils.RouteFeature.BackwardCompatibility;
 using Newtonsoft.Json;
-using UnityEngine;
 
 namespace HisTools.Utils.RouteFeature;
 
 public static class RouteLoader
 {
-    public static RouteSet LoadRoutes(string filePath)
+    public static RouteData LoadRoutes(string filePath)
     {
-        var routeSet = new RouteSet();
+        var routeData = new RouteData
+        {
+            points = new List<Vec3Dto>(),
+            jumpIndices = new List<int>(),
+            notes = new List<RouteNoteDto>()
+        };
 
         if (!File.Exists(filePath))
         {
             Logger.Error($"Route file not found: {filePath}");
-            return routeSet;
+            return routeData;
         }
         
         if (!filePath.EndsWith(".json"))
         {
             Logger.Error($"Route file '{filePath}' is not a JSON-file");
-            return routeSet;
+            return routeData;
         }
         
         var jsonText = File.ReadAllText(filePath);
         if (string.IsNullOrWhiteSpace(jsonText))
         {
             Logger.Warn($"JSON-file is empty: {filePath}");
-            return routeSet;
+            return routeData;
         }
 
         var version = RouteOldSupport.DetectVersion(jsonText);
@@ -64,14 +68,14 @@ public static class RouteLoader
         catch (Exception ex)
         {
             Logger.Warn($"Error parsing JSON: {ex.Message}");
-            return routeSet;
+            return routeData;
         }
 
 
         if (routeDataList == null || routeDataList.Count == 0)
         {
             Logger.Debug($"No routes in file: {filePath}");
-            return routeSet;
+            return routeData;
         }
 
         var changed = false;
@@ -91,39 +95,39 @@ public static class RouteLoader
         }
 
         var first = routeDataList.First();
-        routeSet.Info = first.info;
+        routeData.info = first.info;
 
         foreach (var rd in routeDataList.Where(rd => rd.points != null))
         {
-            var startIndex = routeSet.Points.Count;
+            var startIndex = routeData.points.Count;
 
             foreach (var p in rd.points)
             {
-                routeSet.Points.Add(new Vector3(p.x, p.y, p.z));
+                routeData.points.Add(p);
             }
 
             if (rd.jumpIndices != null)
             {
                 foreach (var jumpIndex in rd.jumpIndices)
                 {
-                    routeSet.JumpIndices.Add(startIndex + jumpIndex);
+                    routeData.jumpIndices.Add(startIndex + jumpIndex);
                 }
             }
 
             if (rd.notes != null)
             {
-                routeSet.Notes.AddRange(
-                    rd.notes.Select(n =>
-                        new Note(
-                            new Vector3(n.position.x, n.position.y, n.position.z),
-                            n.text
-                        )
-                    )
-                );
+                foreach (var n in rd.notes)
+                {
+                    routeData.notes.Add(new RouteNoteDto
+                    {
+                        position = n.position,
+                        text = n.text
+                    });
+                }
             }
         }
 
 
-        return routeSet;
+        return routeData;
     }
 }

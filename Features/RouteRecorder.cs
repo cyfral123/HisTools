@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using HisTools.Features.Controllers;
 using HisTools.Prefabs;
 using HisTools.Utils;
@@ -109,6 +110,23 @@ public class RouteRecorder : FeatureBase
         }
     }
 
+    // private void UploadRoute(string json)
+    // {
+    //     _ = UploadRouteAsync(json);
+    // }
+    //
+    // private async Task UploadRouteAsync(string json)
+    // {
+    //     var (ok, ownerToken, error) = await Http.RouteApiClient.UploadRouteAsync(json);
+    //     if (ok)
+    //     {
+    //         Utils.Logger.Info($"RecordPath: Route uploaded successfully, owner token: {ownerToken}");
+    //     }
+    //     else
+    //     {
+    //         Utils.Logger.Error($"RecordPath: Failed to upload route: {error}");
+    //     }
+    // }
 
     public override void OnDisable()
     {
@@ -156,6 +174,7 @@ public class RouteRecorder : FeatureBase
         try
         {
             File.WriteAllText(filePath, json);
+            // UploadRoute(json);
             Utils.Logger.Info($"RecordPath: JSON saved to {filePath}");
         }
         catch (Exception ex)
