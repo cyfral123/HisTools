@@ -485,7 +485,6 @@ public class RoutePlayer : FeatureBase
         var remainingColor = GetSetting<ColorSetting>("Remaining color").Value;
         var completedColor = GetSetting<ColorSetting>("Completed color").Value;
         var textColor = GetSetting<ColorSetting>("Text color").Value;
-        var useRoutePreferredColors = GetSetting<BoolSetting>("Use route preferred colors").Value;
         var progressThreshold = GetSetting<FloatSliderSetting>("Path progress threshold").Value;
         var fadedAlpha = GetSetting<FloatSliderSetting>("Faded opacity").Value;
         var fadeDistance = GetSetting<FloatSliderSetting>("Fade distance").Value;
@@ -553,24 +552,14 @@ public class RoutePlayer : FeatureBase
                 const float width = 0.15f;
                 var t0 = Mathf.Clamp01(progress - width / 2f);
                 var t1 = Mathf.Clamp01(progress + width / 2f);
-
-                var completed = route.Info != null && useRoutePreferredColors &&
-                                route.Info.CompletedColor != Color.clear
-                    ? route.Info.CompletedColor
-                    : completedColor;
-
-                var remaining = route.Info != null && useRoutePreferredColors &&
-                                route.Info.RemainingColor != Color.clear
-                    ? route.Info.RemainingColor
-                    : remainingColor;
-
+                
                 var colorKeys = new GradientColorKey[]
                 {
-                    new(completed, 0f),
-                    new(completed, t0),
-                    new(Color.Lerp(completed, remaining, 0.5f), progress),
-                    new(remaining, t1),
-                    new(remaining, 1f)
+                    new(completedColor, 0f),
+                    new(completedColor, t0),
+                    new(Color.Lerp(completedColor, remainingColor, 0.5f), progress),
+                    new(remainingColor, t1),
+                    new(remainingColor, 1f)
                 };
 
                 var alphaKeys = new GradientAlphaKey[]
@@ -611,17 +600,12 @@ public class RoutePlayer : FeatureBase
             }
 
             // notes
-            var routeTextColor =
-                (route.Info != null && useRoutePreferredColors && route.Info.TextColor != Color.clear)
-                    ? route.Info.TextColor
-                    : textColor;
-
             foreach (var note in route.NoteLabels)
             {
                 if (!note) continue;
 
                 var tmp = note.GetComponent<TextMeshPro>();
-                tmp.color = new Color(routeTextColor.r, routeTextColor.g, routeTextColor.b, alpha);
+                tmp.color = new Color(textColor.r, textColor.g, textColor.b, alpha);
             }
         }
     }

@@ -1,110 +1,96 @@
 [
   {
-    "onlyForDebug": {
-      "minDistanceBetweenPoints": 1.2
-    },
     "info": {
       "uid": "9434b872-e02f-4455-848a-68e6b11c8632",
       "name": "Builtin",
       "author": "cyfral",
       "description": "grub",
-      "preferredCompleteColor": "#00000000",
-      "preferredRemainingColor": "#00000000",
-      "preferredNoteColor": "#00000000",
       "targetLevel": "M1_Silos_Storage_13"
     },
     "points": [
       {
         "x": -3.18,
         "y": 28.9,
-        "z": -1.31,
-        "jump": false
+        "z": -1.31
       },
       {
         "x": -3.3,
         "y": 28.9,
-        "z": -0.02,
-        "jump": false
+        "z": -0.02
       },
       {
         "x": -3.27,
         "y": 28.9,
-        "z": 1.32,
-        "jump": false
+        "z": 1.32
       },
       {
         "x": -3.5,
         "y": 28.9,
-        "z": 2.52,
-        "jump": false
+        "z": 2.52
       },
       {
         "x": -3.96,
         "y": 28.8,
-        "z": 3.74,
-        "jump": false
+        "z": 3.74
       },
       {
         "x": -3.96,
         "y": 28.8,
-        "z": 3.74,
-        "jump": true
+        "z": 3.74
       },
       {
         "x": -4.21,
         "y": 29.82,
-        "z": 4.38,
-        "jump": false
+        "z": 4.38
       },
       {
         "x": -4.53,
         "y": 30.72,
-        "z": 5.19,
-        "jump": false
+        "z": 5.19
       },
       {
         "x": -4.93,
         "y": 31.29,
-        "z": 6.18,
-        "jump": false
+        "z": 6.18
       },
       {
         "x": -5.43,
         "y": 31.78,
-        "z": 7.16,
-        "jump": false
+        "z": 7.16
       },
       {
         "x": -5.43,
         "y": 31.78,
-        "z": 7.16,
-        "jump": true
+        "z": 7.16
       },
       {
         "x": -5.66,
         "y": 32.98,
-        "z": 7.62,
-        "jump": false
+        "z": 7.62
       },
       {
         "x": -5.58,
         "y": 34.2,
-        "z": 7.69,
-        "jump": false
+        "z": 7.69
       },
       {
         "x": -6.43,
         "y": 34.38,
-        "z": 8.52,
-        "jump": false
+        "z": 8.52
       }
+    ],
+    "jumpIndices": [
+      5,
+      10
     ],
     "notes": [
       {
-        "x": -7.25,
-        "y": 107.37,
-        "z": 8.67,
-        "note": "YourNote"
+        "position": {
+          "x": -7.25,
+          "y": 107.37,
+          "z": 8.67
+        },
+        "text": "YourNote"
       }
     ]
   }

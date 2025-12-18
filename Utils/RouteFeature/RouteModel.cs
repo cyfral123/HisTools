@@ -42,31 +42,6 @@ public class RouteInfo
     public string author { get; set; }
     public string description { get; set; }
     public string targetLevel { get; set; }
-
-    [JsonIgnore] public Color CompletedColor { get; private set; } = Color.clear;
-    [JsonIgnore] public Color RemainingColor { get; private set; } = Color.clear;
-    [JsonIgnore] public Color TextColor { get; private set; } = Color.clear;
-
-    [JsonProperty("preferredCompletedColor")]
-    public string CompletedColorHex
-    {
-        get => "#" + ColorUtility.ToHtmlStringRGBA(CompletedColor);
-        set => CompletedColor = Palette.FromHtml(value);
-    }
-
-    [JsonProperty("preferredRemainingColor")]
-    public string RemainingColorHex
-    {
-        get => "#" + ColorUtility.ToHtmlStringRGBA(RemainingColor);
-        set => RemainingColor = Palette.FromHtml(value);
-    }
-
-    [JsonProperty("preferredNoteColor")]
-    public string TextColorHex
-    {
-        get => "#" + ColorUtility.ToHtmlStringRGBA(TextColor);
-        set => TextColor = Palette.FromHtml(value);
-    }
 }
 
 
