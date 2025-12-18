@@ -354,7 +354,6 @@ public class RoutePlayer : FeatureBase
                 routeNameAuthor.AddComponent<RouteStateHandler>().Uid = instance.Info.uid;
                 var tmp = routeNameAuthor.GetComponent<TextMeshPro>();
                 tmp.text = nameAuthorText;
-                instance.InfoLabels.Add(routeNameAuthor);
             }
 
             yield return new WaitForEndOfFrame();
@@ -374,7 +373,6 @@ public class RoutePlayer : FeatureBase
                 if (lines < 1) lines = 1;
 
                 routeDescription.transform.position -= Vector3.up * (0.15f * lines);
-                instance.InfoLabels.Add(routeDescription);
             }
         }
 

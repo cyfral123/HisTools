@@ -21,12 +21,6 @@ public struct Vec3Dto
 }
 
 [Serializable]
-public class RoutePointDto
-{
-    public Vec3Dto position;
-}
-
-[Serializable]
 public class RouteNoteDto
 {
     public Vec3Dto position;
@@ -38,12 +32,6 @@ public class Note(Vector3 position, string text)
 {
     public Vector3 Position { get; } = position;
     public string Text { get; } = text;
-}
-
-[Serializable]
-public class PathPoint(Vector3 position)
-{
-    public Vector3 Position { get; } = position;
 }
 
 [Serializable]
@@ -98,7 +86,6 @@ public class RouteInstance
     public LineRenderer Line;
     public readonly List<GameObject> JumpMarkers = [];
     public readonly List<GameObject> NoteLabels = [];
-    public readonly List<GameObject> InfoLabels = [];
     public float MaxProgress = 0f;
 
     public Vector3[] CachedPositions;
@@ -110,7 +97,7 @@ public class RouteSet
 {
     public RouteInfo Info;
 
-    public List<Vector3> Points = [];
-    public HashSet<int> JumpIndices = [];
-    public List<Note> Notes = [];
+    public readonly List<Vector3> Points = [];
+    public readonly HashSet<int> JumpIndices = [];
+    public readonly List<Note> Notes = [];
 }
