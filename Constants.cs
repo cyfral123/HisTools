@@ -35,7 +35,7 @@ public static class Constants
 
     public static class UI
     {
-        public const int CanvasSortOrder = 9999;
+        public const int CanvasSortOrder = 250;
         public const string MenuObjectName = "HisTools_HisToolsFeaturesMenu";
         public const string SettingsPanelName = "HisTools_SettingsPanelController";
         public const string CategoriesContainerName = "HisTools_CategoriesContainer";

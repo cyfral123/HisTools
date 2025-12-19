@@ -9,18 +9,26 @@ public static class UpdateCursorVisibility_Patch
 {
     static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
     {
-        var codes = new List<CodeInstruction>(instructions);
-        var methodIsMenuVisible = AccessTools.PropertyGetter(typeof(UI.FeaturesMenu), "IsMenuVisible");
-
-        for (var i = 0; i < codes.Count - 1; i++)
+        foreach (var code in instructions)
         {
-            if (codes[i].Calls(AccessTools.Method(typeof(CommandConsole), "IsConsoleVisible")))
+            if (code.Calls(AccessTools.Method(typeof(CommandConsole), nameof(CommandConsole.IsConsoleVisible))))
             {
-                codes.Insert(i + 1, new CodeInstruction(OpCodes.Call, methodIsMenuVisible));
-                codes.Insert(i + 2, new CodeInstruction(OpCodes.Or));
-                break;
+                yield return new CodeInstruction(
+                    OpCodes.Call,
+                    AccessTools.Method(typeof(UpdateCursorVisibility_Patch), nameof(IsAnyUIVisible))
+                );
+            }
+            else
+            {
+                yield return code;
             }
         }
-        return codes;
+    }
+
+    private static bool IsAnyUIVisible()
+    {
+        return CommandConsole.IsConsoleVisible()
+               || UI.FeaturesMenu.IsMenuVisible
+               || UI.Controllers.PopupController.IsPopupVisible;
     }
 }

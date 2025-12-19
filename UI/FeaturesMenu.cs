@@ -108,6 +108,7 @@ public class FeaturesMenu : MonoBehaviour
         if (!MenuAnimator) return;
 
         MenuAnimator.Hide();
+        PopupController.IsPopupVisible = false;
         IsMenuVisible = false;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;

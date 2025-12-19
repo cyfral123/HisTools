@@ -16,16 +16,10 @@ public class SettingsButton : MonoBehaviour
     private void Awake()
     {
         var settingsImg = gameObject.AddComponent<Image>();
-        var sprite = PrefabDatabase.Instance.GetTexture("histools/Wrench");
-        if (!sprite)
-        {
-            Utils.Logger.Error("PrefabDatabase: Texture 'histools/Wrench' not found");
-            return;
-        }
+        var sprite = PrefabDatabase.Instance.GetObject("histools/SettingIcon", true);
+        if (!sprite) return;
 
-        
-        settingsImg.sprite =
-            Sprite.Create(sprite, new Rect(0, 0, sprite.width, sprite.height), new Vector2(0.5f, 0.5f));
+        settingsImg.sprite = sprite.GetComponent<SpriteRenderer>().sprite;
         settingsImg.color = Color.gray;
 
         _settingsRect = gameObject.GetComponent<RectTransform>();

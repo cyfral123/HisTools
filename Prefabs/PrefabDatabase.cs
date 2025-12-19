@@ -16,19 +16,6 @@ namespace HisTools.Prefabs
         private readonly Dictionary<string, Object> _loadedAssets = new();
 
         [CanBeNull]
-        public Texture2D GetTexture(string name)
-        {
-            var texture = GetCached<Texture2D>(name);
-            if (!texture)
-            {
-                Logger.Error($"PrefabDatabase: Texture '{name}' not found");
-                return null;
-            }
-
-            return texture;
-        }
-        
-        [CanBeNull]
         public GameObject GetObject(string name, bool active)
         {
             var go = GetCached<GameObject>(name);

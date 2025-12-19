@@ -16,8 +16,10 @@ public static class CL_AssetManagerPatch
             PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "InfoLabel");
             PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_Speedrun");
             PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_BuffsDisplay");
-            PrefabDatabase.Instance.LoadAsset<Texture2D>("histools", "Wrench");
+            PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "SettingIcon");
             PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_RouteRecorder");
+            PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_Popup_Label");
+            PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_Popup_Input");
         }
     }
 }

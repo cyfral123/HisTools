@@ -1,6 +1,7 @@
 using System.Reflection;
 using HarmonyLib;
 using HisTools.UI;
+using HisTools.UI.Controllers;
 using UnityEngine;
 
 namespace HisTools.Patches;
@@ -33,7 +34,7 @@ public static class PlayerPatch
             }
 
             // no __instance.LockCamera() because it makes movement lags
-            CamSpeedField.SetValue(__instance, FeaturesMenu.IsMenuVisible ? 0f : 1f);
+            CamSpeedField.SetValue(__instance, FeaturesMenu.IsMenuVisible || PopupController.IsPopupVisible ? 0f : 1f);
 
             var vel = (Vector3)Velocity.GetValue(__instance);
             EventBus.Publish(new PlayerLateUpdateEvent(vel));

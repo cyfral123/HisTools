@@ -11,7 +11,7 @@ public class DebugInfo : FeatureBase
 {
     private TextMeshProUGUI _uiText;
     private Canvas _uiCanvas;
-
+    
     private readonly StringBuilder _summary = new();
     private float _speedValue;
 
@@ -31,7 +31,7 @@ public class DebugInfo : FeatureBase
         if (!prefab) return;
 
         var go = Object.Instantiate(prefab);
-        _uiCanvas = go.GetComponentInChildren<Canvas>(true);
+        _uiCanvas = go.GetComponent<Canvas>();
         _uiText = go.GetComponentInChildren<TextMeshProUGUI>(true);
     }
 
@@ -50,7 +50,7 @@ public class DebugInfo : FeatureBase
     {
         EventBus.Subscribe<WorldUpdateEvent>(OnWorldUpdate);
         EventBus.Subscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
-
+        
         var usePalette = GetSetting<BoolSetting>("Color from palette").Value;
         _bgTextColor = usePalette
             ? Utils.Palette.HtmlTransparent(Plugin.BackgroundHtml.Value, 0.5f)
