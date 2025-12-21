@@ -3,8 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DG.Tweening;
-using HarmonyLib;
 using HisTools.Features.Controllers;
 using HisTools.Prefabs;
 using HisTools.UI.Controllers;
@@ -22,25 +20,38 @@ namespace HisTools.Features;
 
 public class RouteRecorder : FeatureBase
 {
+    private struct HistoryChunk
+    {
+        public int From;
+        public int To;
+        public GameObject Go;
+    }
+
     private const int MinPoints = 10;
+    private const int MinHistoryStep = 3;
     private const string JumpButton = "Jump";
     private bool _stopRequested;
+    private int _stepCounter;
 
     private readonly List<Vector3> _points = [];
-    private readonly HashSet<int> _jumpIndices = [];
+    private HashSet<int> _jumpIndices = [];
     private readonly List<Note> _notes = [];
 
     private GameObject _previewRoot;
     private LineRenderer _previewLine;
-    private GameObject _previewMarker;
 
-    private Transform _playerTransform;
+    private ENT_Player _player;
     private TextMeshPro _notePrefab;
 
     private GameObject _uiGuide;
     private PopupController _addNotePopup;
     private PopupController _saveRecordPopup;
 
+    private GameObject _recorderHistory;
+    private Transform _historyContent;
+    private GameObject _historyPoint;
+
+    private readonly Stack<HistoryChunk> _historyStack = new();
 
     public RouteRecorder() : base("RouteRecorder", "Record route for current level and save to json")
     {
@@ -65,18 +76,9 @@ public class RouteRecorder : FeatureBase
     {
         var player = ENT_Player.GetPlayer();
         if (!player) return;
-        _playerTransform = player.transform;
+        _player = player;
         Cleanup();
         _previewRoot = new GameObject("HisTools_PreviewRoot");
-
-        // Marker
-        var marker = PrefabDatabase.Instance.GetObject("histools/SphereMarker", false);
-        if (marker)
-        {
-            _previewMarker = Object.Instantiate(marker, _previewRoot.transform);
-            _previewMarker.AddComponent<MarkerActivator>();
-            _previewMarker.GetComponent<Renderer>().material.color = Color.cyan;
-        }
 
         // Note
         var notePrefab = PrefabDatabase.Instance.GetObject("histools/InfoLabel", false);
@@ -87,7 +89,7 @@ public class RouteRecorder : FeatureBase
             tmp.fontSize = 3;
 
             var look = noteGo.AddComponent<LookAtPlayer>();
-            look.player = _playerTransform;
+            look.player = _player.transform;
 
             _notePrefab = tmp;
         }
@@ -112,7 +114,7 @@ public class RouteRecorder : FeatureBase
 
         // Guide
         var guide = PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true);
-        if (guide) _uiGuide = Object.Instantiate(guide, _playerTransform, true);
+        if (guide) _uiGuide = Object.Instantiate(guide, _player.transform, true);
 
         // Note Popup
         var notePopupPrefab = PrefabDatabase.Instance.GetObject("histools/UI_Popup_Input", true);
@@ -162,10 +164,11 @@ public class RouteRecorder : FeatureBase
 
         var levelField = content?.Find("RouteTargetLevel/Input")?
             .GetComponent<TMP_InputField>();
-        
+
         authorField?.text = SteamClient.Name ?? "unknownAuthor";
         levelField?.text = CL_EventManager.currentLevel?.levelName ?? "unknownLevel";
-        
+
+        _saveRecordPopup.bgButton.interactable = false;
         _saveRecordPopup.applyButton.onClick.AddListener(() =>
         {
             var routeInfo = new RouteInfo
@@ -190,12 +193,24 @@ public class RouteRecorder : FeatureBase
             {
                 Utils.Logger.Error($"RecordPath: Failed to write JSON: {ex.Message}");
             }
-            
-            _saveRecordPopup?.Hide();
+
+            _saveRecordPopup.Hide();
             Cleanup();
         });
 
         _saveRecordPopup.cancelButton.onClick.AddListener(Cleanup);
+
+        var testPrefab = PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorderHistory", true);
+        if (!testPrefab) return;
+
+        _recorderHistory = Object.Instantiate(testPrefab);
+
+        _historyContent = _recorderHistory.transform.Find("Scroll View/Viewport/Content");
+        _historyContent.gameObject.AddComponent<AutoCenterHorizontalScroll>();
+
+        _historyPoint = _historyContent.Find("Point").gameObject;
+        _historyPoint.AddComponent<PointAppear>();
+        _historyPoint.AddComponent<PointDisappear>();
 
         EventBus.Subscribe<PlayerLateUpdateEvent>(OnPlayerLateUpdate);
     }
@@ -236,24 +251,60 @@ public class RouteRecorder : FeatureBase
     private void OnPlayerLateUpdate(PlayerLateUpdateEvent e)
     {
         var level = CL_EventManager.currentLevel;
-        if (!_playerTransform || !level) return;
-        var playerPos = level.transform.InverseTransformPoint(_playerTransform.position);
+        if (!_player.transform || !level) return;
+        var playerPos = level.transform.InverseTransformPoint(_player.transform.position);
         var distanceToStop = GetSetting<FloatSliderSetting>("Auto stop distance").Value;
         var jumped = InputManager.GetButton(JumpButton).Down && !CL_GameManager.gMan.lockPlayerInput;
         var minDistance = GetMinPointDistance();
 
         if (_points.Count == 0 || Vector3.Distance(_points.Last(), playerPos) >= minDistance || jumped)
+        {
+            _stepCounter++;
+
             AddPointLocal(playerPos, jumped);
+        }
 
         if (Input.GetMouseButtonDown(2)) _addNotePopup?.Show();
 
         if (GetSetting<BoolSetting>("Auto stop").Value)
         {
-            if (!_stopRequested && _playerTransform.position.DistanceTo(level.GetLevelExit().position) < distanceToStop)
+            if (!_stopRequested &&
+                _player.transform.position.DistanceTo(level.GetLevelExit().position) < distanceToStop)
             {
                 _stopRequested = true;
 
                 CoroutineRunner.Instance.StartCoroutine(DelayedStop());
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.H))
+        {
+            if (_historyStack.Count == 0) return;
+
+            var chunk = _historyStack.Pop();
+
+            Object.Destroy(chunk.Go);
+
+            Vector3? teleportLocalPos = null;
+
+            if (chunk.From > 0)
+            {
+                teleportLocalPos = _points[chunk.From - 1];
+            }
+            
+            _points.RemoveRange(chunk.From, _points.Count - chunk.From);
+
+            _jumpIndices = _jumpIndices
+                .Where(i => i < chunk.From)
+                .ToHashSet();
+
+            _stepCounter = 0;
+            UpdatePreview();
+
+            if (teleportLocalPos.HasValue)
+            {
+                _player.transform.position =
+                    level.transform.TransformPoint(teleportLocalPos.Value);
             }
         }
     }
@@ -287,7 +338,28 @@ public class RouteRecorder : FeatureBase
         if (isJumped)
         {
             _jumpIndices.Add(index);
-            SpawnPreviewMarkerWorld(localPos);
+        }
+
+        if (_stepCounter > MinHistoryStep && _player.IsGrounded())
+        {
+            var from = _historyStack.Count == 0
+                ? 0
+                : _historyStack.Peek().To;
+
+            var to = index + 1;
+
+            var go = Object.Instantiate(_historyPoint, _historyContent);
+            go.SetActive(true);
+            go.GetComponentInChildren<TextMeshProUGUI>().text = from.ToString();
+
+            _historyStack.Push(new HistoryChunk
+            {
+                From = from,
+                To = to,
+                Go = go
+            });
+
+            _stepCounter = 0;
         }
 
         UpdatePreview();
@@ -299,27 +371,25 @@ public class RouteRecorder : FeatureBase
         worldPos = levelTransformOpt?.TransformPoint(localPos) ?? localPos;
     }
 
-    private void SpawnPreviewMarkerWorld(Vector3 localPos)
-    {
-        if (!_previewMarker)
-            return;
-        TryGetWorldPoint(localPos, out var worldPos);
-
-        var marker = Object.Instantiate(_previewMarker, worldPos, quaternion.identity, _previewRoot.transform);
-
-        marker.transform.localScale = Vector3.one * GetSetting<FloatSliderSetting>("Preview markers size").Value;
-        marker.GetComponent<Renderer>().material.DOFade(0.1f, 6f).SetTarget(marker);
-        marker.SetActive(true);
-    }
-
     private void UpdatePreview()
     {
-        if (_previewLine == null || _points.Count < 2) return;
+        if (_previewLine == null)
+            return;
 
-        var smoothed = SmoothUtil.Points(_points.ToList(), 3);
-        var smoothedWorld = smoothed.Select(p => CL_EventManager.currentLevel.transform.TransformPoint(p)).ToList();
+        if (_points.Count < 2)
+        {
+            _previewLine.positionCount = 0;
+            return;
+        }
 
-        _previewLine.positionCount = smoothedWorld.Count;
-        _previewLine.SetPositions(smoothedWorld.ToArray());
+        _previewLine.positionCount = 0;
+        _previewLine.SetPositions(Array.Empty<Vector3>());
+
+        var pointsWorld = _points
+            .Select(p => CL_EventManager.currentLevel.transform.TransformPoint(p))
+            .ToArray();
+
+        _previewLine.positionCount = pointsWorld.Length;
+        _previewLine.SetPositions(pointsWorld);
     }
 }

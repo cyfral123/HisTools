@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading.Tasks;
 using BepInEx;
 using BepInEx.Configuration;
 using HarmonyLib;
@@ -29,7 +30,8 @@ public class Plugin : BaseUnityPlugin
     public static ConfigEntry<string> RouteLabelEnabledColorHtml { get; private set; }
     public static ConfigEntry<int> RouteLabelEnabledOpacityHtml { get; private set; }
     public static ConfigEntry<KeyCode> FeaturesMenuToggleKey { get; private set; }
-
+    
+    
     private void Awake()
     {
         Instance = this;

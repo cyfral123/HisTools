@@ -75,7 +75,6 @@ public class PopupController : MonoBehaviour
     {
         if (!enabled) return;
 
-
         _tween?.Kill();
 
         _tween = DOTween.Sequence()
