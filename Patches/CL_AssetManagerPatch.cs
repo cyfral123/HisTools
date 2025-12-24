@@ -1,6 +1,8 @@
 ﻿using HarmonyLib;
 using HisTools.Prefabs;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace HisTools.Patches;
 
@@ -22,6 +24,7 @@ public static class CL_AssetManagerPatch
             PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_Popup_Input");
             PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_Popup_SaveRecord");
             PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "UI_RouteRecorderHistory");
+            PrefabDatabase.Instance.LoadAsset<GameObject>("histools", "RouteBrowser");
         }
     }
 }

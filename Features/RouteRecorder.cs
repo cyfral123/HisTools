@@ -43,7 +43,11 @@ public class RouteRecorder : FeatureBase
     private ENT_Player _player;
     private TextMeshPro _notePrefab;
 
-    private GameObject _uiGuide;
+    private GameObject _recorderMenu;
+    private GameObject _recorderMenuPlayButton;
+    private GameObject _recorderMenuPauseButton;
+
+    private TextMeshProUGUI _recorderMenuPointsTmp;
     private PopupController _addNotePopup;
     private PopupController _saveRecordPopup;
 
@@ -52,6 +56,10 @@ public class RouteRecorder : FeatureBase
     private GameObject _historyPoint;
 
     private readonly Stack<HistoryChunk> _historyStack = new();
+
+
+    private bool _recording;
+
 
     public RouteRecorder() : base("RouteRecorder", "Record route for current level and save to json")
     {
@@ -78,6 +86,7 @@ public class RouteRecorder : FeatureBase
         if (!player) return;
         _player = player;
         Cleanup();
+        _recording = true;
         _previewRoot = new GameObject("HisTools_PreviewRoot");
 
         // Note
@@ -112,9 +121,12 @@ public class RouteRecorder : FeatureBase
 
         _previewLine.colorGradient = gradient;
 
-        // Guide
-        var guide = PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true);
-        if (guide) _uiGuide = Object.Instantiate(guide, _player.transform, true);
+        // Recorder Menu
+        var recorderUI = PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorder", true);
+        if (recorderUI) _recorderMenu = Object.Instantiate(recorderUI);
+        _recorderMenuPointsTmp = _recorderMenu.GetComponentInChildren<TextMeshProUGUI>();
+        _recorderMenuPlayButton = _recorderMenu.transform.Find("Menu/Controls/PlayPause/PlayButton").gameObject;
+        _recorderMenuPauseButton = _recorderMenu.transform.Find("Menu/Controls/PlayPause/PauseButton").gameObject;
 
         // Note Popup
         var notePopupPrefab = PrefabDatabase.Instance.GetObject("histools/UI_Popup_Input", true);
@@ -198,7 +210,7 @@ public class RouteRecorder : FeatureBase
             Cleanup();
         });
 
-        _saveRecordPopup.cancelButton.onClick.AddListener(Cleanup);
+        _saveRecordPopup.cancelButton.onClick.AddListener(Cleanup); 
 
         var testPrefab = PrefabDatabase.Instance.GetObject("histools/UI_RouteRecorderHistory", true);
         if (!testPrefab) return;
@@ -230,21 +242,24 @@ public class RouteRecorder : FeatureBase
 
     private void Cleanup()
     {
+        _recording = false;
         _stopRequested = false;
         if (_addNotePopup) Object.Destroy(_addNotePopup.gameObject);
         if (_previewRoot) Object.Destroy(_previewRoot);
+        if (_recorderHistory) Object.Destroy(_recorderHistory);
 
         _points.Clear();
         _notes.Clear();
         _jumpIndices.Clear();
+        _historyStack.Clear();
 
-        if (_uiGuide) Object.Destroy(_uiGuide);
+        if (_recorderMenu) Object.Destroy(_recorderMenu);
     }
 
-    // Disable feature on the next frame to safely exit the current update callback
+    // Disable feature after a short delay to safely exit the current update callback
     private IEnumerator DelayedStop()
     {
-        yield return null;
+        yield return new WaitForSeconds(0.1f);
         EventBus.Publish(new FeatureToggleEvent(this, false));
     }
 
@@ -257,7 +272,7 @@ public class RouteRecorder : FeatureBase
         var jumped = InputManager.GetButton(JumpButton).Down && !CL_GameManager.gMan.lockPlayerInput;
         var minDistance = GetMinPointDistance();
 
-        if (_points.Count == 0 || Vector3.Distance(_points.Last(), playerPos) >= minDistance || jumped)
+        if (_recording && (_points.Count == 0 || Vector3.Distance(_points.Last(), playerPos) >= minDistance || jumped))
         {
             _stepCounter++;
 
@@ -291,7 +306,7 @@ public class RouteRecorder : FeatureBase
             {
                 teleportLocalPos = _points[chunk.From - 1];
             }
-            
+
             _points.RemoveRange(chunk.From, _points.Count - chunk.From);
 
             _jumpIndices = _jumpIndices
@@ -306,6 +321,28 @@ public class RouteRecorder : FeatureBase
                 _player.transform.position =
                     level.transform.TransformPoint(teleportLocalPos.Value);
             }
+        }
+
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            _recording = !_recording;
+            if (_recording)
+            {
+                _recorderMenuPlayButton.SetActive(false);
+                _recorderMenuPauseButton.SetActive(true);
+            }
+            else
+            {
+                _recorderMenuPlayButton.SetActive(true);
+                _recorderMenuPauseButton.SetActive(false);
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            _stopRequested = true;
+
+            CoroutineRunner.Instance.StartCoroutine(DelayedStop());
         }
     }
 
@@ -391,5 +428,7 @@ public class RouteRecorder : FeatureBase
 
         _previewLine.positionCount = pointsWorld.Length;
         _previewLine.SetPositions(pointsWorld);
+
+        _recorderMenuPointsTmp.text = $"Points: {_points.Count}";
     }
 }

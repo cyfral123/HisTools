@@ -22,17 +22,6 @@ public static class PlayerPatch
 
         public static void Postfix(ENT_Player __instance)
         {
-            if (Input.GetKeyDown(Plugin.FeaturesMenuToggleKey.Value) && !CL_GameManager.isDead() &&
-                !CL_GameManager.gMan.isPaused)
-            {
-                FeaturesMenu.ToggleMenu();
-            }
-
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                FeaturesMenu.HideMenu();
-            }
-
             // no __instance.LockCamera() because it makes movement lags
             CamSpeedField.SetValue(__instance, FeaturesMenu.IsMenuVisible || PopupController.IsPopupVisible ? 0f : 1f);
 

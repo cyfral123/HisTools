@@ -76,7 +76,6 @@ public class MenuAnimator : MonoBehaviour
 
         if (show)
         {
-            gameObject.SetActive(true);
             canvasGroup.interactable = true;
             canvasGroup.blocksRaycasts = true;
         }
@@ -101,7 +100,5 @@ public class MenuAnimator : MonoBehaviour
         if (show) return;
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
-
-        DOVirtual.DelayedCall(duration, () => { gameObject.SetActive(false); });
     }
 }

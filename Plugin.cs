@@ -44,6 +44,7 @@ public class Plugin : BaseUnityPlugin
             InitializeFeatures();
             SubscribeToEvents();
             Files.EnsureBuiltinRoutes();
+            
         }
         catch (Exception ex)
         {

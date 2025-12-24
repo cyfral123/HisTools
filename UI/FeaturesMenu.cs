@@ -5,6 +5,8 @@ using HisTools.UI.Controllers;
 using HisTools.Utils;
 using UnityEngine;
 using UnityEngine.UI;
+using Unity.VisualScripting;
+using CoroutineRunner = HisTools.Utils.CoroutineRunner;
 
 namespace HisTools.UI;
 
@@ -17,7 +19,7 @@ public class FeaturesMenu : MonoBehaviour
     private static GameObject CategoriesContainerGO { get; set; }
     private static GameObject SettingsGO { get; set; }
     public static CanvasGroup CanvasGroup { get; private set; }
-    private static MenuAnimator MenuAnimator { get; set; }
+    private static MenuAnimator MenuHandler { get; set; }
     public static Canvas Canvas { get; private set; }
     public static bool IsMenuVisible { get; private set; }
 
@@ -37,28 +39,30 @@ public class FeaturesMenu : MonoBehaviour
 
     private static void BuildMenuHierarchy()
     {
-        if (FeaturesMenuGO != null && CanvasGroup != null && MenuAnimator != null)
+        if (FeaturesMenuGO && CanvasGroup && MenuHandler)
             return;
 
         FeaturesMenuGO = new GameObject("HisTools_HisToolsFeaturesMenu");
         DontDestroyOnLoad(FeaturesMenuGO);
-
-        Canvas = FeaturesMenuGO.GetComponent<Canvas>() ?? FeaturesMenuGO.AddComponent<Canvas>();
+        
+        Canvas = FeaturesMenuGO.GetOrAddComponent<Canvas>();
         Canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         Canvas.sortingOrder = Constants.UI.CanvasSortOrder;
 
-        if (FeaturesMenuGO.GetComponent<CanvasScaler>() == null)
-            FeaturesMenuGO.AddComponent<CanvasScaler>();
+        FeaturesMenuGO.GetOrAddComponent<CanvasScaler>();
+        FeaturesMenuGO.GetOrAddComponent<GraphicRaycaster>();
 
-        if (FeaturesMenuGO.GetComponent<GraphicRaycaster>() == null)
-            FeaturesMenuGO.AddComponent<GraphicRaycaster>();
-
-        CanvasGroup = FeaturesMenuGO.GetComponent<CanvasGroup>() ?? FeaturesMenuGO.AddComponent<CanvasGroup>();
+        CanvasGroup = FeaturesMenuGO.GetOrAddComponent<CanvasGroup>();
         CanvasGroup.alpha = 0f;
         CanvasGroup.interactable = false;
         CanvasGroup.blocksRaycasts = false;
         
-        var image = FeaturesMenuGO.GetComponent<Image>() ?? FeaturesMenuGO.AddComponent<Image>();
+        var canvasGroupCloser = CanvasGroup.gameObject.AddComponent<EscCloseCanvasGroup>();
+        canvasGroupCloser.group = CanvasGroup;
+        canvasGroupCloser.OnHide = HideMenu;
+        
+        
+        var image = FeaturesMenuGO.GetOrAddComponent<Image>();
         image.color = new Color(0f, 0f, 0f, 1f);
         image.raycastTarget = false;
 
@@ -80,23 +84,22 @@ public class FeaturesMenu : MonoBehaviour
             rect.offsetMax = new Vector2(0, 0);
         }
 
-        if (!CategoriesContainerGO.GetComponent<CanvasGroup>())
-            CategoriesContainerGO.AddComponent<CanvasGroup>();
+        CategoriesContainerGO.GetOrAddComponent<CanvasGroup>();
 
-        var categoriesAnim = CategoriesContainerGO.GetComponent<CategoriesAnimator>() ??
-                             CategoriesContainerGO.AddComponent<CategoriesAnimator>();
+        var categoriesAnim = CategoriesContainerGO.AddComponent<CategoriesAnimator>();
 
-        MenuAnimator = FeaturesMenuGO.GetComponent<MenuAnimator>() ?? FeaturesMenuGO.AddComponent<MenuAnimator>();
-        MenuAnimator.canvasGroup = CanvasGroup;
-        MenuAnimator.categoryAnim = categoriesAnim;
+        MenuHandler = FeaturesMenuGO.AddComponent<MenuAnimator>();
+        MenuHandler.canvasGroup = CanvasGroup;
+        MenuHandler.categoryAnim = categoriesAnim;
+        MenuHandler.gameObject.AddComponent<FeaturesMenuHandler>().OnToggle = ToggleMenu;
     }
 
     public static void ShowMenu()
     {
         if (IsMenuVisible) return;
-        if (!MenuAnimator) return;
+        if (!MenuHandler) return;
 
-        MenuAnimator.Show();
+        MenuHandler.Show();
         IsMenuVisible = true;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -105,9 +108,9 @@ public class FeaturesMenu : MonoBehaviour
     public static void HideMenu()
     {
         if (!IsMenuVisible) return;
-        if (!MenuAnimator) return;
+        if (!MenuHandler) return;
 
-        MenuAnimator.Hide();
+        MenuHandler.Hide();
         PopupController.IsPopupVisible = false;
         IsMenuVisible = false;
         Cursor.lockState = CursorLockMode.Locked;
@@ -119,7 +122,7 @@ public class FeaturesMenu : MonoBehaviour
     public static void ToggleMenu()
     {
         EnsureHisToolsMenuInitialized();
-        if (!MenuAnimator || _isAnimating) return;
+        if (!MenuHandler || _isAnimating) return;
 
         _isAnimating = true;
 
@@ -143,7 +146,7 @@ public class FeaturesMenu : MonoBehaviour
 
         RebuildCategoriesAndButtonsIfNeeded();
 
-        if (MenuAnimator && MenuAnimator)
+        if (MenuHandler && MenuHandler)
             return;
 
         if (!CanvasGroup && FeaturesMenuGO)
@@ -173,15 +176,15 @@ public class FeaturesMenu : MonoBehaviour
             return;
         }
 
-        MenuAnimator = FeaturesMenuGO.GetComponent<MenuAnimator>();
+        MenuHandler = FeaturesMenuGO.GetComponent<MenuAnimator>();
 
-        if (!MenuAnimator)
+        if (!MenuHandler)
         {
-            MenuAnimator = FeaturesMenuGO.AddComponent<MenuAnimator>();
+            MenuHandler = FeaturesMenuGO.AddComponent<MenuAnimator>();
         }
 
-        MenuAnimator.canvasGroup = CanvasGroup;
-        MenuAnimator.categoryAnim = categoriesAnimator ?? CategoriesContainerGO?.AddComponent<CategoriesAnimator>();
+        MenuHandler.canvasGroup = CanvasGroup;
+        MenuHandler.categoryAnim = CategoriesContainerGO?.GetOrAddComponent<CategoriesAnimator>();
     }
 
     private static void RebuildCategoriesAndButtonsIfNeeded()
